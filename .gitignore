@@ -1,0 +1,14 @@
+data/
+.DS_Store
+wandb/
+.idea/
+*/*df.csv
+*/__pycache__/*
+random_forests/__pycache__/*
+df*.csv
+*df.csv
+.vscode/
+./datasets/
+__pycache__/
+*.html
+archive/
