@@ -11,6 +11,7 @@ df*.csv
 ./datasets/
 __pycache__/
 *.html
-archive/
+./archive/
 
 004_lr_and_rf_modelling/all_models/*
+004_lr_and_rf_modelling/all_models/*results.csv
