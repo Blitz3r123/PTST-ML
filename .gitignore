@@ -1,17 +1,17 @@
-data/
 .DS_Store
-wandb/
 .idea/
-*/*df.csv
+.vscode/
+__pycache__/
 */__pycache__/*
+wandb/
+
+data/
+*/*df.csv
 random_forests/__pycache__/*
 df*.csv
 *df.csv
-.vscode/
 ./datasets/
-__pycache__/
 *.html
-./archive/
 
 004_lr_and_rf_modelling/all_models/*
-004_lr_and_rf_modelling/all_models/*results.csv
+004_lr_and_rf_modelling/*results.csv

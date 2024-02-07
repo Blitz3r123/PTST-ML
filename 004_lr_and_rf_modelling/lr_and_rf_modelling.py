@@ -537,8 +537,8 @@ def main():
                                     "standardisation_function": STANDARDISATION_FUNCTION,
                                     "transform_function": TRANSFORM_FUNCTION,
                                     "error_type": error_type,
-                                    "train_error": train_error,
-                                    "test_error": test_error,
+                                    "train_value": train_error,
+                                    "test_value": test_error,
                                 }
 
                                 MODEL_RESULT_DF = pd.concat([MODEL_RESULT_DF, pd.DataFrame([model_result])], ignore_index=True)
