@@ -19,21 +19,15 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 console = Console()
 
-args = sys.argv[1:]
-
-# if len(args) == 0:
-#     logger.error("No arguments provided: You need to pass in either 'lr' or 'rf' as an argument (for Linear Regression or Random Forest respectively)")
-#     exit()
-
-# MODEL_TYPE_INITIALS = args[0].lower()
-# MODEL_TYPE = "Linear Regression" if MODEL_TYPE_INITIALS == "lr" else "Random Forests"
+#==========================================================================================================================
+#                                                      CONSTANTS
+#==========================================================================================================================
 
 MODEL_TYPES = ["Linear Regression", "Random Forests"]
+TEST_TYPES = ['interpolation', 'extrapolation']
 
 TRAIN_DATASET_PATH = "./../000_datasets/2023-09-30_train_dataset.csv"
 EXTRAPOLATION_TEST_DATASET_PATH = "./../000_datasets/2023-09-30_extrapolation_test_dataset.csv"
-
-TEST_TYPES = ['interpolation', 'extrapolation']
 
 INPUT_VARIABLES = [
     'datalen_bytes',
@@ -49,16 +43,22 @@ INPUT_VARIABLES = [
 
 METRICS = [
     'latency_us',
+
     'total_throughput_mbps',
     'avg_throughput_mbps',
+    
     'total_samples_per_sec',
     'avg_samples_per_sec',
+    
     'total_lost_samples',
     'avg_lost_samples',
+    
     'total_lost_samples_percentage',
     'avg_lost_samples_percentage',
+    
     'total_received_samples',
     'avg_received_samples',
+    
     'total_received_samples_percentage',
     'avg_received_samples_percentage',
 ]
@@ -71,12 +71,7 @@ STATS = [
     '90', '95', '99'
 ]
 
-STANDARDISATION_FUNCTIONS = [
-    "none",
-    "z_score",
-    'min_max',
-    'robust_scaler',
-]
+STANDARDISATION_FUNCTIONS = ["none", "z_score", 'min_max', 'robust_scaler',]
 
 TRANSFORM_FUNCTIONS = [
     "none",
@@ -86,6 +81,10 @@ TRANSFORM_FUNCTIONS = [
     "log1p",
     "sqrt",
 ]
+
+#==========================================================================================================================
+#                                                      FUNCTIONS
+#==========================================================================================================================
 
 def detransform_value(value, transform_function):
     if value is None or transform_function is None:
@@ -117,89 +116,6 @@ def detransform_value(value, transform_function):
     else:
         print(f"Unknown transform_function: {transform_function}")
         return None
-
-def get_error_per_output_variable(y_train, y_test, y_pred_train, y_pred_test, output_variables, error_type, transform_function):
-    if y_train is None or y_test is None or y_pred_train is None or y_pred_test is None:
-        logger.warning("Missing arguments")
-        return None
-    
-    if output_variables is None:
-        logger.warning("No output variables provided")
-        return None
-    
-    if error_type is None:
-        logger.warning("No error type provided")
-        return None
-    
-    valid_error_types = [
-        "rmse", "mse", "mae", "mape", "r2", "medae", "explained_variance"
-    ]
-
-    if error_type not in valid_error_types:
-        logger.warning(f"Invalid error type: {error_type}")
-        return None
-
-    error_per_output_variable = []
-    for output_variable in output_variables:
-        target_index = output_variables.index(output_variable)
-
-        transformed_y_train_target = y_train[output_variable]
-        transformed_y_test_target = y_test[output_variable]
-        
-        # ? Detransform all values before error metric calculation
-        y_train_target = [ detransform_value(value, transform_function) for value in transformed_y_train_target ]
-        y_test_target = [ detransform_value(value, transform_function) for value in transformed_y_test_target ]
-
-        transformed_y_pred_train_target = y_pred_train[:, target_index]
-        transformed_y_pred_test_target = y_pred_test[:, target_index]
-
-        # ? Detransform all values before error metric calculation
-        y_pred_train_target = [ detransform_value(value, transform_function) for value in transformed_y_pred_train_target ]
-        y_pred_test_target = [ detransform_value(value, transform_function) for value in transformed_y_pred_test_target ]
-
-        if error_type == "mae":
-            error_train = mean_absolute_error(y_train_target, y_pred_train_target)
-            error_test = mean_absolute_error(y_test_target, y_pred_test_target)
-        
-        elif error_type == "mse":
-            error_train = mean_squared_error(y_train_target, y_pred_train_target)
-            error_test = mean_squared_error(y_test_target, y_pred_test_target)
-
-        elif error_type == "rmse":
-            error_train = mean_squared_error(y_train_target, y_pred_train_target, squared=False)
-            error_test = mean_squared_error(y_test_target, y_pred_test_target, squared=False)
-
-        elif error_type == "mape":
-            error_train = np.mean(
-                np.abs([(y_train_target[i] - y_pred_train_target[i]) / y_train_target[i] * 100 for i in range(len(y_train_target))])
-            )
-            error_test = np.mean(
-                np.abs([(y_test_target[i] - y_pred_test_target[i]) / y_test_target[i] * 100 for i in range(len(y_test_target))])
-            )
-
-        elif error_type == "r2":
-            error_train = r2_score(y_train_target, y_pred_train_target)
-            error_test = r2_score(y_test_target, y_pred_test_target)
-
-        elif error_type == "medae":
-            error_train = median_absolute_error(y_train_target, y_pred_train_target)
-            error_test = median_absolute_error(y_test_target, y_pred_test_target)
-
-        elif error_type == "explained_variance":
-            error_train = explained_variance_score(y_train_target, y_pred_train_target)
-            error_test = explained_variance_score(y_test_target, y_pred_test_target)
-
-        else:
-            logger.warning(f"Unknown error type: {error_type}")
-            return None
-
-        error_per_output_variable.append({
-            "output_variable": output_variable,
-            f"{error_type}_train": error_train,
-            f"{error_type}_test": error_test,
-        })
-
-    return error_per_output_variable
 
 def get_error_for_output_variable(target_index, y_train, y_test, y_pred_train, y_pred_test, output_variable, error_type, transform_function):
 
