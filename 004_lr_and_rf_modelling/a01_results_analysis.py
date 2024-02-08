@@ -13,6 +13,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
+import pytest
+import sys
 
 from pprint import pprint
 from icecream import ic
@@ -38,6 +40,35 @@ DDS_METRICS = [
     'total_received_samples_percentage',
     'total_samples_per_sec',
     'total_throughput_mbps'
+]
+
+STATS = [
+    'min', 'max',
+    'mean', 'std',
+    '1', '2', '5', '10', 
+    '25', '30', '40', '50', '60', '70', '75', '80', 
+    '90', '95', '99'
+]
+
+STANDARDISATION_FUNCTIONS = ["none", "z_score", 'min_max', 'robust_scaler',]
+
+TRANSFORM_FUNCTIONS = [
+    "none",
+    "log",
+    "log10",
+    "log2",
+    "log1p",
+    "sqrt",
+]
+
+ERROR_METRICS = [
+    "rmse", 
+    "mse", 
+    "mae", 
+    "mape", 
+    "r2", 
+    "medae", 
+    "explained_variance"
 ]
 
 #==========================================================================================================================
@@ -119,11 +150,73 @@ def get_model_results():
 
     return pd.read_csv(result_csv_file)
 
+def is_df_valid(df):
+    # What am I looking for?
+    # [ ] Does df['metric_of_interest'].unique() and DDS_METRICS match
+    # [ ] Are there any NaNs in the dataframe?
+    # [ ] Are there any duplicates in the dataframe?
+    # [ ] Group by model_type and int_or_ext and count the number of rows to make sure they all match
+    # [ ] Does df['standardisation'].unique() and STANDARDISATION_FUNCTIONS match
+    # [ ] Does df['transform_function'].unique() and TRANSFORM_FUNCTIONS match
+    # [ ] Does df['error_type'].unique() and ['rmse', 'mse', 'mae', 'mape', 'r', 'medae', 'explained_variance'] match
+    # [ ] Does df['model_type'].unique() and ['linear_regression', 'random_forest'] match
+    # [ ] Does df['int_or_ext'].unique() and ['interpolation', 'extrapolation'] match
+
+    if df is None:
+        logger.error("Empty dataframe.")
+        return False
+
+    if len(df) == 0:
+        logger.error("Empty dataframe.")
+        return False
+
+    if len(df['metric_of_interest'].unique()) != len(DDS_METRICS):
+        logger.error(f"Unique metrics in dataframe: {df['metric_of_interest'].unique()}. Expected: {DDS_METRICS}")
+        return False
+    
+    if df.isna().sum().sum() > 0:
+        logger.error(f"NaNs found in dataframe.")
+    
+    if df.duplicated().sum() > 0:
+        logger.error(f"Duplicates found in dataframe.")
+        return False
+    
+    if df.groupby(['model_type', 'int_or_ext']).size().nunique() != 1:
+        logger.error(f"Number of rows for each group of model_type and int_or_ext do not match.")
+        return False
+    
+    if len(df['standardisation_function'].unique()) != len(STANDARDISATION_FUNCTIONS):
+        logger.error(f"Unique standardisation functions in dataframe: {df['standardisation_function'].unique()}. Expected: {STANDARDISATION_FUNCTIONS}")
+        return False
+    
+    if len(df['transform_function'].unique()) != len(TRANSFORM_FUNCTIONS):
+        logger.error(f"Unique transform functions in dataframe: {df['transform_function'].unique()}. Expected: {TRANSFORM_FUNCTIONS}")
+        return False
+    
+    if len(df['error_type'].unique()) != len(ERROR_METRICS):
+        logger.error(f"Unique error types in dataframe: {df['error_type'].unique()}. Expected: {ERROR_METRICS}")
+        return False
+    
+    if len(df['model_type'].unique()) != 2:
+        logger.error(f"Unique model types in dataframe: {df['model_type'].unique()}. Expected: ['Linear Regresssion', 'Random Forests']")
+        return False
+    
+    if len(df['int_or_ext'].unique()) != 2:
+        logger.error(f"Unique int_or_ext in dataframe: {df['int_or_ext'].unique()}. Expected: ['interpolation', 'extrapolation']")
+        return False
+
+    return True
+
 def main():
     logging.basicConfig(level=logging.WARNING)
     df = get_model_results()
 
-    print(df.head())
+    if not is_df_valid(df):
+        return
 
 if __name__ == "__main__":
-    main()
+    if pytest.main(["-q", "./"]) == 0:
+        main()
+    else:
+        logger.error("Tests failed.")
+        sys.exit(1)
