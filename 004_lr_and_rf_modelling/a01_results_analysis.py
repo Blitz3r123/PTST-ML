@@ -43,8 +43,8 @@ DDS_METRICS = [
 ]
 
 STATS = [
-    'min', 'max',
     'mean', 'std',
+    'min', 'max',
     '1', '2', '5', '10', 
     '25', '30', '40', '50', '60', '70', '75', '80', 
     '90', '95', '99'
@@ -74,6 +74,69 @@ ERROR_METRICS = [
 #==========================================================================================================================
 #                                                      FUNCTIONS
 #==========================================================================================================================
+
+def format_stats(stats):
+    if len(stats) == 0:
+        return []
+    
+    formatted_stats = []
+
+    for stat in stats:
+        if stat is None:
+            continue
+        if stat == "":
+            continue
+        if len(stat) == 0:
+            continue
+        if len(stat.strip()) == 0:
+            continue
+        
+        try:
+            stat = int(stat)
+            if stat % 10 == 1:
+                formatted_stats.append(f"{stat}st")
+            elif stat % 10 == 2:
+                formatted_stats.append(f"{stat}nd")
+            elif stat % 10 == 3:
+                formatted_stats.append(f"{stat}rd")
+            else:
+                formatted_stats.append(f"{stat}th")
+        except:
+            
+            if stat.lower() == "std":
+                formatted_stats.append("std")
+            else:
+                formatted_stats.append(stat.capitalize())
+
+    return formatted_stats
+
+def get_table_columns(error_metrics):
+    columns = []
+
+    for error_metric in error_metrics:
+        if error_metric is None:
+            continue
+        if error_metric == "":
+            continue
+        if len(error_metric) == 0:
+            continue
+        if len(error_metric.strip()) == 0:
+            continue
+        if "train" in error_metric.lower():
+            continue
+        if "test" in error_metric.lower():
+            continue
+
+        try:
+            error_metric = int(error_metric)
+            continue
+        except:
+            pass
+
+        columns.append(f"{error_metric.upper()} Train")
+        columns.append(f"{error_metric.upper()} Test")
+
+    return columns
 
 def get_timestamps_from_filenames(filenames):
     timestamps = []
@@ -151,17 +214,6 @@ def get_model_results():
     return pd.read_csv(result_csv_file)
 
 def is_df_valid(df):
-    # What am I looking for?
-    # [ ] Does df['metric_of_interest'].unique() and DDS_METRICS match
-    # [ ] Are there any NaNs in the dataframe?
-    # [ ] Are there any duplicates in the dataframe?
-    # [ ] Group by model_type and int_or_ext and count the number of rows to make sure they all match
-    # [ ] Does df['standardisation'].unique() and STANDARDISATION_FUNCTIONS match
-    # [ ] Does df['transform_function'].unique() and TRANSFORM_FUNCTIONS match
-    # [ ] Does df['error_type'].unique() and ['rmse', 'mse', 'mae', 'mape', 'r', 'medae', 'explained_variance'] match
-    # [ ] Does df['model_type'].unique() and ['linear_regression', 'random_forest'] match
-    # [ ] Does df['int_or_ext'].unique() and ['interpolation', 'extrapolation'] match
-
     if df is None:
         logger.error("Empty dataframe.")
         return False
@@ -170,37 +222,46 @@ def is_df_valid(df):
         logger.error("Empty dataframe.")
         return False
 
+    # [ ] Does df['metric_of_interest'].unique() and DDS_METRICS match
     if len(df['metric_of_interest'].unique()) != len(DDS_METRICS):
         logger.error(f"Unique metrics in dataframe: {df['metric_of_interest'].unique()}. Expected: {DDS_METRICS}")
         return False
     
+    # [ ] Are there any NaNs in the dataframe?
     if df.isna().sum().sum() > 0:
         logger.error(f"NaNs found in dataframe.")
     
+    # [ ] Are there any duplicates in the dataframe?
     if df.duplicated().sum() > 0:
         logger.error(f"Duplicates found in dataframe.")
         return False
     
+    # [ ] Group by model_type and int_or_ext and count the number of rows to make sure they all match
     if df.groupby(['model_type', 'int_or_ext']).size().nunique() != 1:
         logger.error(f"Number of rows for each group of model_type and int_or_ext do not match.")
         return False
     
+    # [ ] Does df['standardisation'].unique() and STANDARDISATION_FUNCTIONS match
     if len(df['standardisation_function'].unique()) != len(STANDARDISATION_FUNCTIONS):
         logger.error(f"Unique standardisation functions in dataframe: {df['standardisation_function'].unique()}. Expected: {STANDARDISATION_FUNCTIONS}")
         return False
     
+    # [ ] Does df['transform_function'].unique() and TRANSFORM_FUNCTIONS match
     if len(df['transform_function'].unique()) != len(TRANSFORM_FUNCTIONS):
         logger.error(f"Unique transform functions in dataframe: {df['transform_function'].unique()}. Expected: {TRANSFORM_FUNCTIONS}")
         return False
-    
+
+    # [ ] Does df['error_type'].unique() and ['rmse', 'mse', 'mae', 'mape', 'r2', 'medae', 'explained_variance'] match
     if len(df['error_type'].unique()) != len(ERROR_METRICS):
         logger.error(f"Unique error types in dataframe: {df['error_type'].unique()}. Expected: {ERROR_METRICS}")
         return False
     
+    # [ ] Does df['model_type'].unique() and ['linear_regression', 'random_forest'] match
     if len(df['model_type'].unique()) != 2:
         logger.error(f"Unique model types in dataframe: {df['model_type'].unique()}. Expected: ['Linear Regresssion', 'Random Forests']")
         return False
     
+    # [ ] Does df['int_or_ext'].unique() and ['interpolation', 'extrapolation'] match
     if len(df['int_or_ext'].unique()) != 2:
         logger.error(f"Unique int_or_ext in dataframe: {df['int_or_ext'].unique()}. Expected: ['interpolation', 'extrapolation']")
         return False
@@ -213,6 +274,87 @@ def main():
 
     if not is_df_valid(df):
         return
+    
+    df = df.sort_values(
+        by=[
+            'model_type', 
+            'int_or_ext', 
+            'metric_of_interest', 
+            'standardisation_function', 
+            'transform_function', 
+            'error_type'
+        ],
+        ascending=[
+            True, 
+            False, 
+            True, 
+            True, 
+            True, 
+            True
+        ]
+    )
+
+    # df is ready to analyse and turn into latex tables here
+    
+    '''
+    What to do?
+    1. Group by model_type and int_or_ext, and metric_of_interest.
+    2. Group further by standardisation_function and transform_function.
+    3. For each std+tfm group create a table.
+        3.1. Table should have first column as distribution stats (min, max, mean, std, 1, 2, 5, 10, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 99), and the rest of the columns as pairs of train and test errors for each error type.
+    '''
+
+    df_grouped_by_model_type_int_or_ext_metric_of_interest = df.groupby(['model_type', 'int_or_ext', 'metric_of_interest'])
+
+    for (model_type, int_or_ext, metric_of_interest), first_group in df_grouped_by_model_type_int_or_ext_metric_of_interest:
+        
+        df_grouped_by_std_tfm = first_group.groupby(['standardisation_function', 'transform_function'])
+
+        for (std, tfm), second_group in df_grouped_by_std_tfm:
+            
+            table_columns = get_table_columns(ERROR_METRICS)
+            table = pd.DataFrame(columns=["Distribution Statistic"] + table_columns)
+
+            stats = format_stats(STATS)
+
+            for stat in STATS:
+                
+                stat_index = STATS.index(stat)
+                formatted_stat = stats[stat_index]
+                stat_row = [formatted_stat]
+
+                for error_type in ERROR_METRICS:
+                    output_variable = f"{metric_of_interest}_{stat}"
+                    
+                    train_error = second_group[
+                        (second_group['error_type'] == error_type) & 
+                        (second_group['output_variable'] == output_variable)
+                    ]['train_error']
+                    
+                    test_error = second_group[
+                        (second_group['error_type'] == error_type) & 
+                        (second_group['output_variable'] == output_variable)
+                    ]['test_error']
+                    
+                    if len(train_error) == 0:
+                        train_error = np.nan
+
+                    if len(test_error) == 0:
+                        test_error = np.nan
+
+                    train_value = train_error.values[0]
+                    test_value = test_error.values[0]
+
+                    train_value = "{:,.3f}".format(train_value)
+                    test_value = "{:,.3f}".format(test_value)
+
+                    stat_row.append(train_value)
+                    stat_row.append(test_value)
+
+                table = pd.concat([table, pd.DataFrame([stat_row], columns=["Distribution Statistic"] + table_columns)], ignore_index=True)
+
+            print(table.to_latex(index=False))
+            asdf
 
 if __name__ == "__main__":
     if pytest.main(["-q", "./"]) == 0:

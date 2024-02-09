@@ -159,7 +159,7 @@ class TestA01ResultsAnalysis(unittest.TestCase):
                     'avg_lost_samples',
                     'total_lost_samples_percentage',
                     'avg_lost_samples_percentage',
-                    # 'total_received_samples',
+                    'total_received_samples',
                     'avg_received_samples',
                     'total_received_samples_percentage',
                     'avg_received_samples_percentage',
@@ -275,6 +275,26 @@ class TestA01ResultsAnalysis(unittest.TestCase):
         self.assertEqual(src.is_df_valid(df), True)
         self.assertEqual(src.is_df_valid(pd.DataFrame()), False)
         self.assertEqual(src.is_df_valid(None), False)
+
+    def test_get_table_columns(self):
+        self.assertEqual(src.get_table_columns([]), [])
+        self.assertEqual(src.get_table_columns(['']), [])
+        self.assertEqual(src.get_table_columns(['2']), [])
+        self.assertEqual(src.get_table_columns(['2', 'rmse']), ['RMSE Train', 'RMSE Test'])
+        self.assertEqual(src.get_table_columns(['  ', 'rmse']), ['RMSE Train', 'RMSE Test'])
+        self.assertEqual(src.get_table_columns(['train']), [])
+        self.assertEqual(src.get_table_columns(['test']), [])
+
+    def test_format_stats(self):
+        self.assertEqual(src.format_stats([]), [])
+        self.assertEqual(src.format_stats(['']), [])
+        self.assertEqual(src.format_stats(['1']), ['1st'])
+        self.assertEqual(src.format_stats(['2']), ['2nd'])
+        self.assertEqual(src.format_stats(['3']), ['3rd'])
+        self.assertEqual(src.format_stats(['4']), ['4th'])
+        self.assertEqual(src.format_stats(['mean']), ['Mean'])
+        self.assertEqual(src.format_stats(['std']), ['std'])
+        self.assertEqual(src.format_stats(['mean', 'std', '1', '2', '5', '10']), ['Mean', 'std', '1st', '2nd', '5th', '10th'])
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
