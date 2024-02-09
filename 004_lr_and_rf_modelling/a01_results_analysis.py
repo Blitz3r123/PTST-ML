@@ -18,6 +18,7 @@ import sys
 
 from pprint import pprint
 from icecream import ic
+from rich.progress import track
 
 logger = logging.getLogger(__name__)
 
@@ -328,8 +329,6 @@ def main():
         ]
     )
 
-    # df is ready to analyse and turn into latex tables here
-    
     '''
     What to do?
     1. Group by model_type and int_or_ext, and metric_of_interest.
@@ -338,13 +337,19 @@ def main():
         3.1. Table should have first column as distribution stats (min, max, mean, std, 1, 2, 5, 10, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 99), and the rest of the columns as pairs of train and test errors for each error type.
     '''
 
-    df_grouped_by_model_type_int_or_ext_metric_of_interest = df.groupby(['model_type', 'int_or_ext', 'metric_of_interest'])
+    df_grouped_by_model_type_int_or_ext_metric_of_interest = df.groupby(['model_type', 'int_or_ext', 'metric_of_interest'], sort=False)
 
-    for (model_type, int_or_ext, metric_of_interest), first_group in df_grouped_by_model_type_int_or_ext_metric_of_interest:
-        
+    latex_output = ""
+
+    for (model_type, int_or_ext, metric_of_interest), first_group in track(df_grouped_by_model_type_int_or_ext_metric_of_interest, description="Processing..."):
+
+        latex_output += f"\\subsection{{{model_type} {int_or_ext.capitalize()} \\verb|{metric_of_interest}|}}\n"
+
         df_grouped_by_std_tfm = first_group.groupby(['standardisation_function', 'transform_function'])
 
         for (std, tfm), second_group in df_grouped_by_std_tfm:
+
+            latex_output += f"\\subsubsection{{{std} {tfm}}}\n"
             
             table_columns = get_table_columns(ERROR_METRICS)
             table = pd.DataFrame(columns=["Distribution Statistic"] + table_columns)
@@ -378,8 +383,13 @@ def main():
                     ignore_index=True
                 )
 
-            print(table.to_latex(index=False))
-            asdf
+            table_label = f"tab:{model_type.replace(' ', '_')}_{int_or_ext.capitalize()}_{metric_of_interest}_{std}_{tfm}"
+            table_caption = f"{model_type} {int_or_ext.capitalize()} \\verb|{metric_of_interest}| Standardisation: \\verb|{std}| Transformation: \\verb|{tfm}|"
+            
+            latex_output += table.to_latex(index=False, caption=table_caption, label=table_label) + "\n"
+
+    with open("output.tex", "w") as f:
+        f.write(latex_output)
 
 if __name__ == "__main__":
     if pytest.main(["-q", "./"]) == 0:
