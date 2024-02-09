@@ -75,6 +75,40 @@ ERROR_METRICS = [
 #                                                      FUNCTIONS
 #==========================================================================================================================
 
+def get_train_test_errors(df, error_type, output_variable):
+    if df is None:
+        logger.error("Empty dataframe passed to get_train_test_errors")
+        return None, None
+    if error_type is None:
+        logger.error("None error_type passed to get_train_test_errors")
+        return None, None
+    if output_variable is None:
+        logger.error("None output_variable passed to get_train_test_errors")
+        return None, None
+    if len(df) == 0:
+        logger.error("Empty dataframe passed to get_train_test_errors")
+        return None, None
+
+    required_columns = ['error_type', 'output_variable', 'train_error', 'test_error']
+    if not all(col in df.columns for col in required_columns):
+        logger.error(f"Required columns not found in dataframe: {required_columns}. Found: {df.columns}")
+        return None, None
+
+    train_error = df[
+        (df['error_type'] == error_type) & 
+        (df['output_variable'] == output_variable)
+    ]['train_error']
+    
+    test_error = df[
+        (df['error_type'] == error_type) & 
+        (df['output_variable'] == output_variable)
+    ]['test_error']
+    
+    train_error = train_error.values[0] if len(train_error) > 0 else None
+    test_error = test_error.values[0] if len(test_error) > 0 else None
+        
+    return train_error, test_error
+
 def format_stats(stats):
     if len(stats) == 0:
         return []
@@ -326,32 +360,23 @@ def main():
                 for error_type in ERROR_METRICS:
                     output_variable = f"{metric_of_interest}_{stat}"
                     
-                    train_error = second_group[
-                        (second_group['error_type'] == error_type) & 
-                        (second_group['output_variable'] == output_variable)
-                    ]['train_error']
-                    
-                    test_error = second_group[
-                        (second_group['error_type'] == error_type) & 
-                        (second_group['output_variable'] == output_variable)
-                    ]['test_error']
-                    
-                    if len(train_error) == 0:
-                        train_error = np.nan
+                    train_error, test_error = get_train_test_errors(
+                        second_group, 
+                        error_type, 
+                        output_variable
+                    )
 
-                    if len(test_error) == 0:
-                        test_error = np.nan
+                    stat_row.append("{:,.3f}".format(train_error))
+                    stat_row.append("{:,.3f}".format(test_error))
 
-                    train_value = train_error.values[0]
-                    test_value = test_error.values[0]
-
-                    train_value = "{:,.3f}".format(train_value)
-                    test_value = "{:,.3f}".format(test_value)
-
-                    stat_row.append(train_value)
-                    stat_row.append(test_value)
-
-                table = pd.concat([table, pd.DataFrame([stat_row], columns=["Distribution Statistic"] + table_columns)], ignore_index=True)
+                table = pd.concat(
+                    [
+                        table, 
+                        pd.DataFrame([stat_row], 
+                        columns=["Distribution Statistic"] + table_columns)
+                    ], 
+                    ignore_index=True
+                )
 
             print(table.to_latex(index=False))
             asdf

@@ -5,6 +5,7 @@ import os
 import a01_results_analysis as src
 import pandas as pd
 import numpy as np
+from icecream import ic
 
 def generate_random_result_row(
         setting=None,
@@ -295,6 +296,56 @@ class TestA01ResultsAnalysis(unittest.TestCase):
         self.assertEqual(src.format_stats(['mean']), ['Mean'])
         self.assertEqual(src.format_stats(['std']), ['std'])
         self.assertEqual(src.format_stats(['mean', 'std', '1', '2', '5', '10']), ['Mean', 'std', '1st', '2nd', '5th', '10th'])
+
+    def test_get_train_test_errors(self):
+        # Parameters: df, error_type, output_variable
+        # Required df cols: 'error_type', 'train_error', 'test_error', 'output_variable'
+
+        test_columns1 = ['error_type', 'train_error', 'test_error', 'output_variable']
+        test_columns2 = ['train_error', 'test_error', 'output_variable']
+
+        test_df1 = pd.DataFrame(
+            columns=test_columns1,
+            data=[
+                ['rmse', 0.1, 0.2, 'latency_us_1'],
+                ['rmse', 0.3, 0.4, 'latency_us_2'],
+                ['rmse', 0.5, 0.6, 'latency_us_5'],
+                ['rmse', 0.7, 0.8, 'latency_us_10'],
+                ['rmse', 0.9, 1.0, 'latency_us_min'],
+            ]
+        )
+
+        test_df2 = pd.DataFrame(
+            columns=test_columns2,
+            data=[
+                [0.1, 0.2, 'latency_us_1'],
+                [0.3, 0.4, 'latency_us_2'],
+                [0.5, 0.6, 'latency_us_5'],
+                [0.7, 0.8, 'latency_us_10'],
+                [0.9, 1.0, 'latency_us_min'],
+            ]
+        )
+
+        empty_return = (None, None)
+
+        # Empty Cases
+        self.assertEqual(src.get_train_test_errors(None, None, None), empty_return)
+        self.assertEqual(src.get_train_test_errors(None, None, None), empty_return)
+
+        # Partially Empty Cases
+        self.assertEqual( src.get_train_test_errors(test_df1, None, None), empty_return )
+        self.assertEqual( src.get_train_test_errors(test_df1, 'rmse', None), empty_return )
+        
+        # Base Cases
+        ic(src.get_train_test_errors(test_df1, 'rmse', 'latency_us_1'))
+        self.assertEqual( src.get_train_test_errors(test_df1, 'rmse', 'latency_us_1'), (0.1, 0.2) )
+        self.assertEqual( src.get_train_test_errors(test_df1, 'rmse', 'latency_us_5'), (0.5, 0.6) )
+        self.assertEqual( src.get_train_test_errors(test_df1, 'mae', 'latency_us_5'), empty_return )
+        
+        # Error Cases
+        self.assertEqual( src.get_train_test_errors(test_df2, 'rmse', 'latency_us_5'), empty_return )
+        self.assertEqual( src.get_train_test_errors(test_df2, 'mae', 'latency_us_5'), empty_return )
+        self.assertEqual( src.get_train_test_errors(test_df2, 'mae', 'latency_us_1'), empty_return )
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
