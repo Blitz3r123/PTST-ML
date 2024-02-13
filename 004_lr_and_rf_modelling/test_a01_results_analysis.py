@@ -287,6 +287,9 @@ class TestA01ResultsAnalysis(unittest.TestCase):
         self.assertEqual(src.get_table_columns(['test']), [])
         self.assertEqual(src.get_table_columns(['explained_variance']), ['Explained Variance Train', 'Explained Variance Test'])
 
+    def test_format_stat(self):
+        self.assertEqual(src.format_stat(''), None)
+
     def test_format_stats(self):
         self.assertEqual(src.format_stats([]), [])
         self.assertEqual(src.format_stats(['']), [])

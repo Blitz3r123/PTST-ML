@@ -110,38 +110,40 @@ def get_train_test_errors(df, error_type, output_variable):
         
     return train_error, test_error
 
+def format_stat(stat):
+    if stat is None:
+        return None
+    if stat == "":
+        return None
+    if len(stat) == 0:
+        return None
+    if len(stat.strip()) == 0:
+        return None
+    
+    try:
+        stat = int(stat)
+        if stat % 10 == 1:
+            return f"{stat}st"
+        elif stat % 10 == 2:
+            return f"{stat}nd"
+        elif stat % 10 == 3:
+            return f"{stat}rd"
+        else:
+            return f"{stat}th"
+    except:
+        if stat.lower() == "std":
+            return "std"
+        else:
+            return stat.capitalize()
+
 def format_stats(stats):
     if len(stats) == 0:
         return []
     
     formatted_stats = []
-
     for stat in stats:
-        if stat is None:
-            continue
-        if stat == "":
-            continue
-        if len(stat) == 0:
-            continue
-        if len(stat.strip()) == 0:
-            continue
-        
-        try:
-            stat = int(stat)
-            if stat % 10 == 1:
-                formatted_stats.append(f"{stat}st")
-            elif stat % 10 == 2:
-                formatted_stats.append(f"{stat}nd")
-            elif stat % 10 == 3:
-                formatted_stats.append(f"{stat}rd")
-            else:
-                formatted_stats.append(f"{stat}th")
-        except:
-            
-            if stat.lower() == "std":
-                formatted_stats.append("std")
-            else:
-                formatted_stats.append(stat.capitalize())
+        if stat:
+            formatted_stats.append(format_stat(stat))
 
     return formatted_stats
 
@@ -317,14 +319,10 @@ def generate_latex_table_for_error_metrics(error_metrics, metric_of_interest, gr
     table = pd.DataFrame(columns=["Distribution Statistic"] + table_columns)
     column_formats = "|c|" + "r|" * len(table_columns)
 
-    stats = format_stats(STATS)
-    for stat in STATS:
-        stat_index = STATS.index(stat)
-        formatted_stat = stats[stat_index]
-        stat_row = [formatted_stat]
-
+    formatted_stats = format_stats(STATS)
+    for index, stat in enumerate(STATS):
         
-
+        stat_row = [ formatted_stats[index] ]
         for error_type in error_metrics:
             output_variable = f"{metric_of_interest}_{stat}"
             
@@ -428,7 +426,7 @@ def main():
         f.write(latex_output)
 
 if __name__ == "__main__":
-    if pytest.main(["-q", "./"]) == 0:
+    if pytest.main(["-q", "./", "--exitfirst"]) == 0:
         main()
     else:
         logger.error("Tests failed.")
