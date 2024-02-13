@@ -308,6 +308,54 @@ def is_df_valid(df):
 
     return True
 
+def generate_latex_table_for_error_metrics(error_metrics, metric_of_interest, group, model_type, int_or_ext, std, tfm):
+    metric_of_interest_string = metric_of_interest.replace("_", "\\_")
+    std_string = std.replace("_", "\\_")
+    tfm_string = tfm.replace("_", "\\_")
+
+    table_columns = get_table_columns(error_metrics)
+    table = pd.DataFrame(columns=["Distribution Statistic"] + table_columns)
+    column_formats = "|c|" + "r|" * len(table_columns)
+
+    stats = format_stats(STATS)
+    for stat in STATS:
+        stat_index = STATS.index(stat)
+        formatted_stat = stats[stat_index]
+        stat_row = [formatted_stat]
+
+        
+
+        for error_type in error_metrics:
+            output_variable = f"{metric_of_interest}_{stat}"
+            
+            train_error, test_error = get_train_test_errors(
+                group, 
+                error_type, 
+                output_variable
+            )
+
+            stat_row.append("{:,.3f}".format(train_error))
+            stat_row.append("{:,.3f}".format(test_error))
+
+        table = pd.concat(
+            [
+                table,
+                pd.DataFrame(
+                    [stat_row], 
+                    columns=["Distribution Statistic"] + table_columns
+                )
+            ], 
+            ignore_index=True
+        )
+
+    table_label = f"tab:{model_type.replace(' ', '_')}_{int_or_ext.capitalize()}_{metric_of_interest}_{std}_{tfm}"
+    table_caption = f"{model_type} {int_or_ext.capitalize()} {metric_of_interest_string} Standardisation: {std_string} Transformation: {tfm_string}"
+    latex_table = table.to_latex(index=False, caption=table_caption, label=table_label, column_format=column_formats) + "\n"
+    latex_table = latex_table.replace("\\begin{table}", "\\begin{landscape}\n\\begin{table}")
+    latex_table = latex_table.replace("\\end{table}", "\\end{landscape}\n\\end{table}")
+
+    return latex_table
+
 def main():
     logging.basicConfig(level=logging.WARNING)
     df = get_model_results()
@@ -358,55 +406,23 @@ def main():
 
             std_string = std.replace("_", "\\_")
             tfm_string = tfm.replace("_", "\\_")
-
             latex_output += f"\\subsubsection{{{std_string} {tfm_string}}}\n"
-            
-            table_columns = get_table_columns(ERROR_METRICS)
-            table = pd.DataFrame(columns=["Distribution Statistic"] + table_columns)
 
-            column_formats = "|c|" + "r|" * len(table_columns)
+            # Pair the following error metrics together:
+            # r2, rmse
+            # mae, medae
+            # mse, mape
+            # explained_variance
 
-            stats = format_stats(STATS)
+            error_metric_pairs = [
+                ['r2', 'rmse'],
+                ['mae', 'medae'],
+                ['mse', 'mape'],
+                ['explained_variance']
+            ]
 
-            for stat in STATS:
-                
-                stat_index = STATS.index(stat)
-                formatted_stat = stats[stat_index]
-                stat_row = [formatted_stat]
-
-                for error_type in ERROR_METRICS:
-                    output_variable = f"{metric_of_interest}_{stat}"
-                    
-                    train_error, test_error = get_train_test_errors(
-                        second_group, 
-                        error_type, 
-                        output_variable
-                    )
-
-                    stat_row.append("{:,.3f}".format(train_error))
-                    stat_row.append("{:,.3f}".format(test_error))
-
-                table = pd.concat(
-                    [
-                        table,
-                        pd.DataFrame([stat_row], 
-                        columns=["Distribution Statistic"] + table_columns)
-                    ], 
-                    ignore_index=True
-                )
-
-            table_label = f"tab:{model_type.replace(' ', '_')}_{int_or_ext.capitalize()}_{metric_of_interest}_{std}_{tfm}"
-            
-            table_caption = f"{model_type} {int_or_ext.capitalize()} {metric_of_interest_string} Standardisation: {std_string} Transformation: {tfm_string}"
-            
-            latex_output += table.to_latex(index=False, caption=table_caption, label=table_label, column_format=column_formats) + "\n"
-
-            latex_output = latex_output.replace("\\begin{table}", "\\begin{landscape}\n\\begin{table}")
-            latex_output = latex_output.replace("\\end{table}", "\\end{landscape}\n\\end{table}")
-
-            with open("output.tex", "w") as f:
-                f.write(latex_output)
-            asdf
+            for error_metrics in error_metric_pairs:
+                latex_output += generate_latex_table_for_error_metrics(error_metrics, metric_of_interest, second_group, model_type, int_or_ext, std, tfm)
 
     with open("output.tex", "w") as f:
         f.write(latex_output)

@@ -348,6 +348,67 @@ class TestA01ResultsAnalysis(unittest.TestCase):
         self.assertEqual( src.get_train_test_errors(test_df2, 'mae', 'latency_us_5'), empty_return )
         self.assertEqual( src.get_train_test_errors(test_df2, 'mae', 'latency_us_1'), empty_return )
 
+    def test_generate_latex_table_for_error_metrics(self):
+
+        df = src.get_model_results()
+
+        if not src.is_df_valid(df):
+            self.skipTest("Dataframe is invalid")
+        
+        df = df.sort_values(
+            by=[
+                'model_type', 
+                'int_or_ext', 
+                'metric_of_interest', 
+                'standardisation_function', 
+                'transform_function', 
+                'error_type'
+            ],
+            ascending=[
+                True, 
+                False, 
+                True, 
+                True, 
+                True, 
+                True
+            ]
+        )
+
+        df_grouped_by_model_type_int_or_ext_metric_of_interest = df.groupby(
+            ['model_type', 'int_or_ext', 'metric_of_interest'], 
+            sort=False
+        )
+
+        latex_output = ""
+        
+        for (model_type, int_or_ext, metric_of_interest), first_group in df_grouped_by_model_type_int_or_ext_metric_of_interest:
+
+            metric_of_interest_string = metric_of_interest.replace("_", "\\_")
+
+            latex_output += f"\\subsection{{{model_type} {int_or_ext.capitalize()} {metric_of_interest_string}}}\n"
+
+            df_grouped_by_std_tfm = first_group.groupby(['standardisation_function', 'transform_function'])
+
+            for (std, tfm), second_group in df_grouped_by_std_tfm:
+
+                std_string = std.replace("_", "\\_")
+                tfm_string = tfm.replace("_", "\\_")
+                latex_output += f"\\subsubsection{{{std_string} {tfm_string}}}\n"
+
+                error_metrics = ['r2', 'rmse']
+                
+                latex_table = src.generate_latex_table_for_error_metrics(
+                    error_metrics,
+                    metric_of_interest, 
+                    second_group, 
+                    model_type,
+                    int_or_ext,
+                    std,
+                    tfm
+                )
+
+                self.assertTrue(latex_table)
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
     unittest.main()
