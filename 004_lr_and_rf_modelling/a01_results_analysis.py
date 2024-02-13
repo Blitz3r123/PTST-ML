@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import logging
 import pytest
 import sys
+import logging
 
 from pprint import pprint
 from icecream import ic
@@ -22,55 +23,7 @@ from rich.progress import track
 
 logger = logging.getLogger(__name__)
 
-#==========================================================================================================================
-#                                                      CONSTANTS
-#==========================================================================================================================
-ALL_MODELS_DIRPATH = "./all_models/"
-
-DDS_METRICS = [
-    'avg_lost_samples',
-    'avg_lost_samples_percentage',
-    'avg_received_samples',
-    'avg_received_samples_percentage',
-    'avg_samples_per_sec',
-    'avg_throughput_mbps',
-    'latency_us',
-    'total_lost_samples',
-    'total_lost_samples_percentage',
-    'total_received_samples',
-    'total_received_samples_percentage',
-    'total_samples_per_sec',
-    'total_throughput_mbps'
-]
-
-STATS = [
-    'mean', 'std',
-    'min', 'max',
-    '1', '2', '5', '10', 
-    '25', '30', '40', '50', '60', '70', '75', '80', 
-    '90', '95', '99'
-]
-
-STANDARDISATION_FUNCTIONS = ["none", "z_score", 'min_max', 'robust_scaler',]
-
-TRANSFORM_FUNCTIONS = [
-    "none",
-    "log",
-    "log10",
-    "log2",
-    "log1p",
-    "sqrt",
-]
-
-ERROR_METRICS = [
-    "rmse", 
-    "mse", 
-    "mae", 
-    "mape", 
-    "r2", 
-    "medae", 
-    "explained_variance"
-]
+from constants import *
 
 #==========================================================================================================================
 #                                                      FUNCTIONS
@@ -271,11 +224,11 @@ def is_df_valid(df):
     
     # [ ] Are there any NaNs in the dataframe?
     if df.isna().sum().sum() > 0:
-        logger.error(f"NaNs found in dataframe.")
+        logger.warning(f"NaNs found in dataframe.")
     
     # [ ] Are there any duplicates in the dataframe?
     if df.duplicated().sum() > 0:
-        logger.error(f"Duplicates found in dataframe.")
+        logger.warning(f"Duplicates found in dataframe.")
         return False
     
     # [ ] Group by model_type and int_or_ext and count the number of rows to make sure they all match
@@ -310,19 +263,33 @@ def is_df_valid(df):
 
     return True
 
-def generate_latex_table_for_error_metrics(error_metrics, metric_of_interest, group, model_type, int_or_ext, std, tfm):
-    metric_of_interest_string = metric_of_interest.replace("_", "\\_")
-    std_string = std.replace("_", "\\_")
-    tfm_string = tfm.replace("_", "\\_")
+def get_error_metric_df_for_stats(error_metrics, metric_of_interest, group):
+
+    if error_metrics is None:
+        return None, None
+    
+    if metric_of_interest is None:
+        return None, None
+    
+    if group is None:
+        return None, None
+    
+    if len(group) == 0:
+        return None, None
+    
+    error_metrics = [e for e in error_metrics if e is not None and e != "" and len(e) > 0 and len(e.strip()) > 0]
+    if len(error_metrics) == 0:
+        return None, None
+    
 
     table_columns = get_table_columns(error_metrics)
     table = pd.DataFrame(columns=["Distribution Statistic"] + table_columns)
     column_formats = "|c|" + "r|" * len(table_columns)
 
-    formatted_stats = format_stats(STATS)
-    for index, stat in enumerate(STATS):
+    for stat in STATS:
         
-        stat_row = [ formatted_stats[index] ]
+        stat_row = [ format_stat(stat) ]
+        
         for error_type in error_metrics:
             output_variable = f"{metric_of_interest}_{stat}"
             
@@ -332,8 +299,12 @@ def generate_latex_table_for_error_metrics(error_metrics, metric_of_interest, gr
                 output_variable
             )
 
-            stat_row.append("{:,.3f}".format(train_error))
-            stat_row.append("{:,.3f}".format(test_error))
+            if train_error is None or test_error is None:
+                stat_row.append("N/A")
+                stat_row.append("N/A")
+            else:
+                stat_row.append("{:,.3f}".format(train_error))
+                stat_row.append("{:,.3f}".format(test_error))
 
         table = pd.concat(
             [
@@ -345,6 +316,15 @@ def generate_latex_table_for_error_metrics(error_metrics, metric_of_interest, gr
             ], 
             ignore_index=True
         )
+
+    return table, column_formats
+
+def generate_latex_table_for_error_metrics(error_metrics, metric_of_interest, group, model_type, int_or_ext, std, tfm):
+    metric_of_interest_string = metric_of_interest.replace("_", "\\_")
+    std_string = std.replace("_", "\\_")
+    tfm_string = tfm.replace("_", "\\_")
+
+    table, column_formats = get_error_metric_df_for_stats(error_metrics, metric_of_interest, group)
 
     table_label = f"tab:{model_type.replace(' ', '_')}_{int_or_ext.capitalize()}_{metric_of_interest}_{std}_{tfm}"
     table_caption = f"{model_type} {int_or_ext.capitalize()} {metric_of_interest_string} Standardisation: {std_string} Transformation: {tfm_string}"

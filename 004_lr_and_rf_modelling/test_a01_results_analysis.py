@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 from icecream import ic
 
+from constants import *
+
 def generate_random_result_row(
         setting=None,
         model_type=None,
@@ -411,6 +413,106 @@ class TestA01ResultsAnalysis(unittest.TestCase):
                 )
 
                 self.assertTrue(latex_table)
+
+    def test_get_error_metric_df_for_stats(self):
+        df = src.get_model_results()
+
+        if not src.is_df_valid(df):
+            self.skipTest("Dataframe is invalid")
+        
+        df = df.sort_values(
+            by=[
+                'model_type', 
+                'int_or_ext', 
+                'metric_of_interest', 
+                'standardisation_function', 
+                'transform_function', 
+                'error_type'
+            ],
+            ascending=[
+                True, 
+                False, 
+                True, 
+                True, 
+                True, 
+                True
+            ]
+        )
+
+        df_grouped_by_model_type_int_or_ext_metric_of_interest = df.groupby(
+            ['model_type', 'int_or_ext', 'metric_of_interest'], 
+            sort=False
+        )
+
+        latex_output = ""
+        
+        for (model_type, int_or_ext, metric_of_interest), first_group in df_grouped_by_model_type_int_or_ext_metric_of_interest:
+
+            metric_of_interest_string = metric_of_interest.replace("_", "\\_")
+
+            latex_output += f"\\subsection{{{model_type} {int_or_ext.capitalize()} {metric_of_interest_string}}}\n"
+
+            df_grouped_by_std_tfm = first_group.groupby(['standardisation_function', 'transform_function'])
+
+            for (std, tfm), second_group in df_grouped_by_std_tfm:
+
+                # Normal Case
+                df, column_formats = src.get_error_metric_df_for_stats(
+                    ['r2', 'rmse'],
+                    metric_of_interest,
+                    second_group,
+                )
+                # Should return a dataframe and column formats
+                self.assertEqual(type(df), pd.DataFrame)
+                self.assertEqual(type(column_formats), str)
+
+                # Number of rows should match number of stats
+                self.assertEqual(len(df.index), len(STATS))
+
+                # Empty Case 1
+                df, column_formats = src.get_error_metric_df_for_stats(
+                    [],
+                    metric_of_interest,
+                    second_group,
+                )
+                self.assertEqual(df, None)
+                self.assertEqual(column_formats, None)
+
+                # Empty Case 2
+                df, column_formats = src.get_error_metric_df_for_stats(
+                    [''],
+                    metric_of_interest,
+                    second_group,
+                )
+                self.assertEqual(df, None)
+                self.assertEqual(column_formats, None)
+
+                # Empty Case 3
+                df, column_formats = src.get_error_metric_df_for_stats(
+                    ['r2', 'rmse'],
+                    metric_of_interest,
+                    pd.DataFrame(),
+                )
+                self.assertEqual(df, None)
+                self.assertEqual(column_formats, None)
+
+                # Empty Case 4
+                df, column_formats = src.get_error_metric_df_for_stats(
+                    ['r2', 'rmse'],
+                    metric_of_interest,
+                    None,
+                )
+                self.assertEqual(df, None)
+                self.assertEqual(column_formats, None)
+
+                # Empty Case 5
+                df, column_formats = src.get_error_metric_df_for_stats(
+                    ['r2', 'rmse'],
+                    None,
+                    second_group,
+                )
+                self.assertEqual(df, None)
+                self.assertEqual(column_formats, None)
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
