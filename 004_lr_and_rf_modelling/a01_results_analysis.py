@@ -168,8 +168,13 @@ def get_table_columns(error_metrics):
         except:
             pass
 
-        columns.append(f"{error_metric.upper()} Train")
-        columns.append(f"{error_metric.upper()} Test")
+        if "explained_variance" in error_metric.lower():
+            error_metric = "Explained Variance"
+            columns.append(f"{error_metric} Train")
+            columns.append(f"{error_metric} Test")
+        else:
+            columns.append(f"{error_metric.upper()} Train")
+            columns.append(f"{error_metric.upper()} Test")
 
     return columns
 
@@ -343,16 +348,23 @@ def main():
 
     for (model_type, int_or_ext, metric_of_interest), first_group in track(df_grouped_by_model_type_int_or_ext_metric_of_interest, description="Processing..."):
 
-        latex_output += f"\\subsection{{{model_type} {int_or_ext.capitalize()} \\verb|{metric_of_interest}|}}\n"
+        metric_of_interest_string = metric_of_interest.replace("_", "\\_")
+
+        latex_output += f"\\subsection{{{model_type} {int_or_ext.capitalize()} {metric_of_interest_string}}}\n"
 
         df_grouped_by_std_tfm = first_group.groupby(['standardisation_function', 'transform_function'])
 
         for (std, tfm), second_group in df_grouped_by_std_tfm:
 
-            latex_output += f"\\subsubsection{{{std} {tfm}}}\n"
+            std_string = std.replace("_", "\\_")
+            tfm_string = tfm.replace("_", "\\_")
+
+            latex_output += f"\\subsubsection{{{std_string} {tfm_string}}}\n"
             
             table_columns = get_table_columns(ERROR_METRICS)
             table = pd.DataFrame(columns=["Distribution Statistic"] + table_columns)
+
+            column_formats = "|c|" + "r|" * len(table_columns)
 
             stats = format_stats(STATS)
 
@@ -376,7 +388,7 @@ def main():
 
                 table = pd.concat(
                     [
-                        table, 
+                        table,
                         pd.DataFrame([stat_row], 
                         columns=["Distribution Statistic"] + table_columns)
                     ], 
@@ -384,9 +396,17 @@ def main():
                 )
 
             table_label = f"tab:{model_type.replace(' ', '_')}_{int_or_ext.capitalize()}_{metric_of_interest}_{std}_{tfm}"
-            table_caption = f"{model_type} {int_or_ext.capitalize()} \\verb|{metric_of_interest}| Standardisation: \\verb|{std}| Transformation: \\verb|{tfm}|"
             
-            latex_output += table.to_latex(index=False, caption=table_caption, label=table_label) + "\n"
+            table_caption = f"{model_type} {int_or_ext.capitalize()} {metric_of_interest_string} Standardisation: {std_string} Transformation: {tfm_string}"
+            
+            latex_output += table.to_latex(index=False, caption=table_caption, label=table_label, column_format=column_formats) + "\n"
+
+            latex_output = latex_output.replace("\\begin{table}", "\\begin{landscape}\n\\begin{table}")
+            latex_output = latex_output.replace("\\end{table}", "\\end{landscape}\n\\end{table}")
+
+            with open("output.tex", "w") as f:
+                f.write(latex_output)
+            asdf
 
     with open("output.tex", "w") as f:
         f.write(latex_output)
