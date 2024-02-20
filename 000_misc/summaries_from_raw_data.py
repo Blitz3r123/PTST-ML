@@ -232,7 +232,11 @@ def get_pub_df(pub_0_csv_file):
         return None
     
     # ? Read the CSV file using the row_with_headings and skip last 5 lines
-    pub_df = pd.read_csv(pub_0_csv_file, skiprows=row_with_headings, skipfooter=5, engine="python")
+    try:
+        pub_df = pd.read_csv(pub_0_csv_file, skiprows=row_with_headings, skipfooter=5, engine="python")
+    except Exception as e:
+        logger.error(f"Could not read pub_0.csv file: {pub_0_csv_file}: {e}")
+        return None
 
     if pub_df is None:
         logger.error(f"Could not read pub_0.csv file: {pub_0_csv_file}")

@@ -1,3 +1,38 @@
+# Introduction
+
+Here is how it works:
+
+```
+Raw Data -> Summaries -> Dataset
+```
+
+Each arrow (->) is a script.
+
+The first arrow script is: `summaries_from_raw_data.py`.
+
+Second arrow script is: `dataset_from_summaries.py`
+
+## Raw Data
+Takes in a path to the test folders.
+
+### Example
+```
+- 2023-10-06_qos_capture_rcg_ps_raw
+  - 600SEC_167B_12P_4S_BE_UC_3DUR_100LC
+  - 600SEC_199B_15P_19S_REL_UC_3DUR_100LC
+  - ...
+```
+
+## Summaries
+Takes a path to the folder that contains 1 spreadsheet per test.
+
+### Example
+```
+- 2023-10-06_qos_capture_tcg_ps_raw_summaries
+  - 600SEC_167B_12P_4S_BE_UC_3DUR_100LC.csv
+  - 600SEC_199B_15P_19S_REL_UC_3DUR_100LC.csv
+```
+
 # Available Scripts
 
 1. `summaries_from_raw_data.py`
