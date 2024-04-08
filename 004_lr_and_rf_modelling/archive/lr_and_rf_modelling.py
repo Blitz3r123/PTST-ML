@@ -117,7 +117,16 @@ def detransform_value(value, transform_function):
         print(f"Unknown transform_function: {transform_function}")
         return None
 
-def get_error_for_output_variable(target_index, y_train, y_test, y_pred_train, y_pred_test, output_variable, error_type, transform_function):
+def get_error_for_output_variable(
+    target_index,
+    y_train,
+    y_test,
+    y_pred_train,
+    y_pred_test,
+    output_variable,
+    error_type,
+    transform_function
+):
 
     if y_train is None or y_test is None or y_pred_train is None or y_pred_test is None:
         logger.warning("Missing arguments")
