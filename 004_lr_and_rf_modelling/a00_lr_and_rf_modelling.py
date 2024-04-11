@@ -507,41 +507,52 @@ def main():
                         ]
 
                         for output_variable in output_variables:
-                            for error_type in error_types:
-                                train_error, test_error = get_error_for_output_variable(
-                                    target_index=output_variables.index(output_variable),
-                                    y_train=y_train,
-                                    y_test=y_test,
-                                    y_pred_train=y_pred_train,
-                                    y_pred_test=y_pred_test,
-                                    output_variable=output_variable,
-                                    error_type=error_type,
-                                    transform_function=TRANSFORM_FUNCTION,
-                                )
-                                
-                                input_variables_string = ", ".join(INPUT_VARIABLES)
+                            # for error_type in error_types:
+                            r2_train_error, r2_test_error = get_error_for_output_variable(
+                                target_index=output_variables.index(output_variable),
+                                y_train=y_train,
+                                y_test=y_test,
+                                y_pred_train=y_pred_train,
+                                y_pred_test=y_pred_test,
+                                output_variable=output_variable,
+                                error_type='r2',
+                                transform_function=TRANSFORM_FUNCTION,
+                            )
+                            rmse_train_error, rmse_test_error = get_error_for_output_variable(
+                                target_index=output_variables.index(output_variable),
+                                y_train=y_train,
+                                y_test=y_test,
+                                y_pred_train=y_pred_train,
+                                y_pred_test=y_pred_test,
+                                output_variable=output_variable,
+                                error_type='rmse',
+                                transform_function=TRANSFORM_FUNCTION,
+                            )
+                            
+                            input_variables_string = ", ".join(INPUT_VARIABLES)
 
-                                model_result = {
-                                    "model_type": MODEL_TYPE,
-                                    "created_at": created_at,
-                                    "int_or_ext": TEST_TYPE,
-                                    "train_dataset": "PCG + RCG (inclusive)",
-                                    "train_dataset_filename": TRAIN_DATASET_PATH.split("/")[-1],
-                                    "test_dataset": test_dataset,
-                                    "test_dataset_filename": EXTRAPOLATION_TEST_DATASET_PATH.split("/")[-1],
-                                    "train_example_count": len(transformed_train_df),
-                                    "test_example_count": len(transformed_test_df),
-                                    "input_variables": input_variables_string,
-                                    "output_variable": output_variable,
-                                    "metric_of_interest": METRIC,
-                                    "standardisation_function": STANDARDISATION_FUNCTION,
-                                    "transform_function": TRANSFORM_FUNCTION,
-                                    "error_type": error_type,
-                                    "train_value": train_error,
-                                    "test_value": test_error,
-                                }
+                            model_result = {
+                                "model_type": MODEL_TYPE,
+                                "created_at": created_at,
+                                "int_or_ext": TEST_TYPE,
+                                "train_dataset": "PCG + RCG (inclusive)",
+                                "train_dataset_filename": TRAIN_DATASET_PATH.split("/")[-1],
+                                "test_dataset": test_dataset,
+                                "test_dataset_filename": EXTRAPOLATION_TEST_DATASET_PATH.split("/")[-1],
+                                "train_example_count": len(transformed_train_df),
+                                "test_example_count": len(transformed_test_df),
+                                "input_variables": input_variables_string,
+                                "output_variable": output_variable,
+                                "metric_of_interest": METRIC,
+                                "standardisation_function": STANDARDISATION_FUNCTION,
+                                "transform_function": TRANSFORM_FUNCTION,
+                                "r2_train_error": r2_train_error,
+                                "r2_test_error": r2_test_error,
+                                "rmse_train_error": rmse_train_error,
+                                "rmse_test_error": rmse_test_error,
+                            }
 
-                                MODEL_RESULT_DF = pd.concat([MODEL_RESULT_DF, pd.DataFrame([model_result])], ignore_index=True)
+                            MODEL_RESULT_DF = pd.concat([MODEL_RESULT_DF, pd.DataFrame([model_result])], ignore_index=True)
 
                         # ? Save model in joblib  
                         model_filename = f"all_models/{MODEL_TYPE.replace(' ', '_')}_models/{METRIC}/{created_at_path_format}_{TEST_TYPE}_{STANDARDISATION_FUNCTION}_{TRANSFORM_FUNCTION}.joblib"
