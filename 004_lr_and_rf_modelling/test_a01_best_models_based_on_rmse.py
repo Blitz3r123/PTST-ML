@@ -68,6 +68,17 @@ class TestA01BestModelsBasedOnRmse(unittest.TestCase):
         func_return_value = src.calculate_average_metrics_from_models(test_df)
         self.assertEqual(func_return_value, None)
 
+        test_df = pd.DataFrame([], columns = [
+            'model_type',
+            'int_or_ext',
+            'standardisation_function', 
+            'transform_function',
+            'r2_test_error',
+            'rmse_test_error'
+        ])
+        func_return_value = src.calculate_average_metrics_from_models(test_df)
+        # todo check that the df is normal
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
     unittest.main()
