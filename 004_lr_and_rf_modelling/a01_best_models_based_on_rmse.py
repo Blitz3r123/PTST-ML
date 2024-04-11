@@ -54,11 +54,17 @@ def calculate_average_metrics_from_models(group_df=pd.DataFrame()):
     wanted_cols = ['standardisation_function', 'transform_function', 'r2_test_error', 'rmse_test_error']
     df_cols = group_df.columns
 
+    # Cases:
+    # ['model_type', 'int_or_ext']
     mismatching_cols = list(
         set(df_cols) - set(wanted_cols)
     )
 
-    if len(mismatching_cols) >= 0:
+    if len(df_cols) < len(wanted_cols):
+        logger.error(f"There are less cols in the df than wanted for calculate_average_metrics_from_models().\n\tWanted: {wanted_cols}\n\tFound: {df_cols}")
+        return None
+
+    if len(mismatching_cols) < len(df_cols):
         logger.error(f"Mismatch between df cols and wanted cols for calculate_average_metrics_from_models().\n\tWanted: {wanted_cols}\n\tFound: {df_cols}")
         return None
 
