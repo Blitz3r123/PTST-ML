@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error, r2_score, median_absolute_error, explained_variance_score
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, PowerTransformer
 import pandas as pd
+import xgboost as xgb
 import numpy as np
 from icecream import ic
 from loguru import logger
@@ -16,6 +17,7 @@ import os
 import warnings
 import sys
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 console = Console()
 
@@ -23,7 +25,7 @@ console = Console()
 #                                                      CONSTANTS
 #==========================================================================================================================
 
-MODEL_TYPES = ["Linear Regression", "Random Forests"]
+MODEL_TYPES = ["Linear Regression", "Random Forests", "XGBoost"]
 TEST_TYPES = ['interpolation', 'extrapolation']
 
 TRAIN_DATASET_PATH = "./../000_datasets/2023-09-30_train_dataset.csv"
@@ -82,10 +84,6 @@ TRANSFORM_FUNCTIONS = [
     "sqrt",
 ]
 
-#==========================================================================================================================
-#                                                      FUNCTIONS
-#==========================================================================================================================
-
 def detransform_value(value, transform_function):
     if value is None or transform_function is None:
         print("Missing arguments")
@@ -117,7 +115,16 @@ def detransform_value(value, transform_function):
         print(f"Unknown transform_function: {transform_function}")
         return None
 
-def get_error_for_output_variable(target_index, y_train, y_test, y_pred_train, y_pred_test, output_variable, error_type, transform_function):
+def get_error_for_output_variable(
+        target_index,
+        y_train,
+        y_test,
+        y_pred_train,
+        y_pred_test,
+        output_variable,
+        error_type,
+        transform_function
+    ):
 
     if y_train is None or y_test is None or y_pred_train is None or y_pred_test is None:
         logger.warning("Missing arguments")
@@ -143,46 +150,119 @@ def get_error_for_output_variable(target_index, y_train, y_test, y_pred_train, y
     transformed_y_test_target = y_test[output_variable]
 
     # ? Detransform all values before error metric calculation
-    y_train_target = [ detransform_value(value, transform_function) for value in transformed_y_train_target ]
-    y_test_target = [ detransform_value(value, transform_function) for value in transformed_y_test_target ]
+    y_train_target = [ 
+        detransform_value(
+            value, 
+            transform_function
+        ) 
+        for value in transformed_y_train_target 
+    ]
+    y_test_target = [ 
+        detransform_value(
+            value, 
+            transform_function
+        ) 
+        for value in transformed_y_test_target 
+    ]
 
     transformed_y_pred_train_target = y_pred_train[:, target_index]
     transformed_y_pred_test_target = y_pred_test[:, target_index]
 
     # ? Detransform all values before error metric calculation
-    y_pred_train_target = [ detransform_value(value, transform_function) for value in transformed_y_pred_train_target ]
-    y_pred_test_target = [ detransform_value(value, transform_function) for value in transformed_y_pred_test_target ]
+    y_pred_train_target = [ 
+        detransform_value(
+            value, 
+            transform_function
+        ) 
+        for value in transformed_y_pred_train_target 
+    ]
+    y_pred_test_target = [ 
+        detransform_value(
+            value, 
+            transform_function
+        ) 
+        for value in transformed_y_pred_test_target 
+    ]
 
     error_train = None
     error_test = None
 
     if error_type == "mae":
-        error_train = mean_absolute_error(y_train_target, y_pred_train_target)
-        error_test = mean_absolute_error(y_test_target, y_pred_test_target)
+        error_train = mean_absolute_error(
+            y_train_target, 
+            y_pred_train_target
+        )
+        error_test = mean_absolute_error(
+            y_test_target, 
+            y_pred_test_target
+        )
 
     elif error_type == "mse":
-        error_train = mean_squared_error(y_train_target, y_pred_train_target)
-        error_test = mean_squared_error(y_test_target, y_pred_test_target)   
+        error_train = mean_squared_error(
+            y_train_target, 
+            y_pred_train_target
+        )
+        error_test = mean_squared_error(
+            y_test_target, 
+            y_pred_test_target
+        )  
     
     elif error_type == "rmse":
         try:
-            error_train = mean_squared_error(y_train_target, y_pred_train_target, squared=False)
-            error_test = mean_squared_error(y_test_target, y_pred_test_target, squared=False)
+            error_train = mean_squared_error(
+                y_train_target, 
+                y_pred_train_target, 
+                squared=False
+            )
+            error_test = mean_squared_error(
+                y_test_target, 
+                y_pred_test_target, 
+                squared=False
+            )
         except ValueError as e:
             logger.error(f"Error calculating RMSE: {e}")
             return None
 
     elif error_type == "mape":
         error_train = np.mean(
-            np.abs([(y_train_target[i] - y_pred_train_target[i]) / y_train_target[i] * 100 for i in range(len(y_train_target))])
+            np.abs(
+                [
+                    (
+                        y_train_target[i] - y_pred_train_target[i]
+                    ) 
+                    / 
+                    y_train_target[i] 
+                    * 
+                    100 
+                    for i in range(len(y_train_target))
+                ]
+            )
         )
         error_test = np.mean(
-            np.abs([(y_test_target[i] - y_pred_test_target[i]) / y_test_target[i] * 100 for i in range(len(y_test_target))])
+            np.abs(
+                [
+                    (
+                        y_test_target[i] - y_pred_test_target[i]
+                    ) 
+                    / 
+                    y_test_target[i] 
+                    * 
+                    100 
+                    for i in range(len(y_test_target))
+                ]
+            )
         )
 
     elif error_type == "r2":
-        error_train = r2_score(y_train_target, y_pred_train_target)
-        error_test = r2_score(y_test_target, y_pred_test_target)
+        try:
+            error_train = r2_score(y_train_target, y_pred_train_target)
+            error_test = r2_score(y_test_target, y_pred_test_target)
+        except ValueError as e:
+            logger.error(e)
+            logger.error(f"y_train_target: {y_train_target}")
+            logger.error(f"y_pred_train_target: {y_pred_train_target}")
+            logger.error(f"y_test_target: {y_test_target}")
+            logger.error(f"y_pred_test_target: {y_pred_test_target}")
 
     elif error_type == "medae":
         error_train = median_absolute_error(y_train_target, y_pred_train_target)
@@ -383,182 +463,210 @@ def main():
         logger.error(f"EXTRAPOLATION_TEST_DATASET_PATH does not exist: {EXTRAPOLATION_TEST_DATASET_PATH}")
         return
     
-    EXTRAPOLATION_TEST_DF = pd.read_csv(EXTRAPOLATION_TEST_DATASET_PATH)
-    MODEL_RESULT_DF = pd.DataFrame()
+    for repetition_index in range(100):
 
-    for MODEL_TYPE in MODEL_TYPES:
+        EXTRAPOLATION_TEST_DF = pd.read_csv(EXTRAPOLATION_TEST_DATASET_PATH)
+        MODEL_RESULT_DF = pd.DataFrame()
 
-        for TEST_TYPE in TEST_TYPES:
+        for MODEL_TYPE in MODEL_TYPES:
 
-            if TEST_TYPE == "interpolation":
-                df = pd.read_csv(TRAIN_DATASET_PATH)
+            for TEST_TYPE in TEST_TYPES:
+
+                if TEST_TYPE == "interpolation":
+                    df = pd.read_csv(TRAIN_DATASET_PATH)
+                    
+                    extrapolation_test_count = len(EXTRAPOLATION_TEST_DF)
+                    extrapolation_test_percentage = extrapolation_test_count / len(df) * 100
+
+                    # ? Split df into train and test where test has same number of rows as extrapolation test dataset
+                    # ? So both interpolation and extrapolation test datasets have the same number of rows
+                    # ? And both interpolation and extrapolation train datasets have the same number of rows
+                    TEST_DF = df.sample(frac=extrapolation_test_percentage/100, random_state=1)
+                    TRAIN_DF = df.drop(TEST_DF.index)
+
+                    test_dataset = "PCG + RCG (inclusive)"
+
+                elif TEST_TYPE == "extrapolation":
+
+                    # ? Use the extrapolation test dataset as the test dataset
+                    TEST_DF = EXTRAPOLATION_TEST_DF
+                    test_count_percentage = len(TEST_DF) / len(TRAIN_DF) * 100
+
+                    TRAIN_DF = pd.read_csv(TRAIN_DATASET_PATH)
+                    TRAIN_DF = TRAIN_DF.sample(frac=1-(test_count_percentage/100), random_state=1)
+
+                    test_dataset = "PCG + RCG (exclusive)"
+
+                else:
+                    logger.error(f"Unknown TEST_TYPE: {TEST_TYPE}")
+                    return
+
+                if len(TRAIN_DF) == 0:
+                    logger.warning("No data in TRAIN_DF")
+                    return
                 
-                extrapolation_test_count = len(EXTRAPOLATION_TEST_DF)
-                extrapolation_test_percentage = extrapolation_test_count / len(df) * 100
-
-                # ? Split df into train and test where test has same number of rows as extrapolation test dataset
-                # ? So both interpolation and extrapolation test datasets have the same number of rows
-                # ? And both interpolation and extrapolation train datasets have the same number of rows
-                TEST_DF = df.sample(frac=extrapolation_test_percentage/100, random_state=1)
-                TRAIN_DF = df.drop(TEST_DF.index)
-
-                test_dataset = "PCG + RCG (inclusive)"
-
-            elif TEST_TYPE == "extrapolation":
-
-                # ? Use the extrapolation test dataset as the test dataset
-                TEST_DF = EXTRAPOLATION_TEST_DF
-                test_count_percentage = len(TEST_DF) / len(TRAIN_DF) * 100
-
-                TRAIN_DF = pd.read_csv(TRAIN_DATASET_PATH)
-                TRAIN_DF = TRAIN_DF.sample(frac=1-(test_count_percentage/100), random_state=1)
-
-                test_dataset = "PCG + RCG (exclusive)"
-
-            else:
-                logger.error(f"Unknown TEST_TYPE: {TEST_TYPE}")
-                return
-
-            if len(TRAIN_DF) == 0:
-                logger.warning("No data in TRAIN_DF")
-                return
-            
-            if len(TEST_DF) == 0:
-                logger.warning("No data in TEST_DF")
-                return
-            
-            if len(TRAIN_DF.columns) == 0:
-                logger.warning("No columns in TRAIN_DF")
-                return
-            
-            if len(TEST_DF.columns) == 0:
-                logger.warning("No columns in TEST_DF")
-                return
-
-            if len(INPUT_VARIABLES) == 0:
-                logger.warning("No input variables")
-                return
-            
-            if len(TRAIN_DF.columns) != len(TEST_DF.columns):
-                logger.warning("TRAIN_DF and TEST_DF have different number of columns")
-                return
-
-            for METRIC in track(METRICS, description=f"Modelling {MODEL_TYPE} {TEST_TYPE.capitalize()}..."):
+                if len(TEST_DF) == 0:
+                    logger.warning("No data in TEST_DF")
+                    return
                 
-                metric_index = METRICS.index(METRIC) + 1
-
-                # console.print(f"[{metric_index}/{len(METRICS)}] Modelling {TEST_TYPE} {METRIC}...")
+                if len(TRAIN_DF.columns) == 0:
+                    logger.warning("No columns in TRAIN_DF")
+                    return
                 
-                if METRIC not in METRICS:
-                    logger.warning(f"Unknown metric: {METRIC}")
-                    continue
+                if len(TEST_DF.columns) == 0:
+                    logger.warning("No columns in TEST_DF")
+                    return
 
-                output_variables = get_output_variables(METRIC)
+                if len(INPUT_VARIABLES) == 0:
+                    logger.warning("No input variables")
+                    return
+                
+                if len(TRAIN_DF.columns) != len(TEST_DF.columns):
+                    logger.warning("TRAIN_DF and TEST_DF have different number of columns")
+                    return
 
-                if len(output_variables) == 0:
-                    logger.warning(f"No output variables for metric: {METRIC}")
-                    continue
+                for METRIC in track(METRICS, description=f"[{repetition_index + 1}/100] Modelling {MODEL_TYPE} {TEST_TYPE.capitalize()}..."):
+                    
+                    metric_index = METRICS.index(METRIC) + 1
 
-                for STANDARDISATION_FUNCTION in STANDARDISATION_FUNCTIONS:
+                    # console.print(f"[{metric_index}/{len(METRICS)}] Modelling {TEST_TYPE} {METRIC}...")
+                    
+                    if METRIC not in METRICS:
+                        logger.warning(f"Unknown metric: {METRIC}")
+                        continue
 
-                    for TRANSFORM_FUNCTION in TRANSFORM_FUNCTIONS:
+                    output_variables = get_output_variables(METRIC)
 
-                        # ? Cut df down to input and output variables
-                        train_df = TRAIN_DF[INPUT_VARIABLES + output_variables]
-                        test_df = TEST_DF[INPUT_VARIABLES + output_variables]
+                    if len(output_variables) == 0:
+                        logger.warning(f"No output variables for metric: {METRIC}")
+                        continue
 
-                        # ? Standardise input variables
-                        std_train_df, std_test_df = standardise_df(train_df, test_df, INPUT_VARIABLES, STANDARDISATION_FUNCTION)
+                    for STANDARDISATION_FUNCTION in STANDARDISATION_FUNCTIONS:
 
-                        if std_train_df is None or std_test_df is None:
-                            logger.warning("std_train_df or std_test_df is None")
-                            continue
+                        for TRANSFORM_FUNCTION in TRANSFORM_FUNCTIONS:
 
-                        # ? Transform output variables
-                        transformed_train_df = transform_df(std_train_df, output_variables, TRANSFORM_FUNCTION)
-                        transformed_test_df = transform_df(std_test_df, output_variables, TRANSFORM_FUNCTION)
+                            # ? Cut df down to input and output variables
+                            train_df = TRAIN_DF[INPUT_VARIABLES + output_variables]
+                            test_df = TEST_DF[INPUT_VARIABLES + output_variables]
 
-                        # ? Shuffle the data
-                        transformed_train_df = transformed_train_df.sample(frac=1).reset_index(drop=True)
-                        transformed_test_df = transformed_test_df.sample(frac=1).reset_index(drop=True)
-
-                        X_train = transformed_train_df[INPUT_VARIABLES]
-                        y_train = transformed_train_df[output_variables]
-
-                        X_test = transformed_test_df[INPUT_VARIABLES]
-                        y_test = transformed_test_df[output_variables]
-
-                        if MODEL_TYPE == "Random Forests":
-                            model = RandomForestRegressor()
-                        else:
-                            model = LinearRegression()
-                        
-                        model.fit(X_train, y_train)
-
-                        y_pred_train = model.predict(X_train)
-                        y_pred_test = model.predict(X_test)
-
-                        created_at = pd.to_datetime('now').strftime("%Y-%m-%d %H:%M:%S")
-
-                        created_at_path_format = created_at.replace(" ", "_").replace(":", "-")
-                        
-                        error_types = [
-                            "rmse", "mse", "mae", "mape", "r2", "medae", "explained_variance"
-                        ]
-
-                        for output_variable in output_variables:
-                            # for error_type in error_types:
-                            r2_train_error, r2_test_error = get_error_for_output_variable(
-                                target_index=output_variables.index(output_variable),
-                                y_train=y_train,
-                                y_test=y_test,
-                                y_pred_train=y_pred_train,
-                                y_pred_test=y_pred_test,
-                                output_variable=output_variable,
-                                error_type='r2',
-                                transform_function=TRANSFORM_FUNCTION,
+                            # ? Standardise input variables
+                            std_train_df, std_test_df = standardise_df(
+                                train_df, 
+                                test_df, 
+                                INPUT_VARIABLES, 
+                                STANDARDISATION_FUNCTION
                             )
-                            rmse_train_error, rmse_test_error = get_error_for_output_variable(
-                                target_index=output_variables.index(output_variable),
-                                y_train=y_train,
-                                y_test=y_test,
-                                y_pred_train=y_pred_train,
-                                y_pred_test=y_pred_test,
-                                output_variable=output_variable,
-                                error_type='rmse',
-                                transform_function=TRANSFORM_FUNCTION,
-                            )
+
+                            if std_train_df is None or std_test_df is None:
+                                logger.warning("std_train_df or std_test_df is None")
+                                continue
+
+                            # ? Transform output variables
+                            transformed_train_df = transform_df(std_train_df, output_variables, TRANSFORM_FUNCTION)
+                            transformed_test_df = transform_df(std_test_df, output_variables, TRANSFORM_FUNCTION)
+
+                            # ? Shuffle the data
+                            transformed_train_df = transformed_train_df.sample(frac=1).reset_index(drop=True)
+                            transformed_test_df = transformed_test_df.sample(frac=1).reset_index(drop=True)
+
+                            X_train = transformed_train_df[INPUT_VARIABLES]
+                            y_train = transformed_train_df[output_variables]
+
+                            X_test = transformed_test_df[INPUT_VARIABLES]
+                            y_test = transformed_test_df[output_variables]
+
+                            if MODEL_TYPE == "Random Forests":
+                                model = RandomForestRegressor()
+                            elif MODEL_TYPE == "XGBoost":
+                                model = xgb.XGBRFRegressor(random_state=42)
+                            else:
+                                model = LinearRegression()
                             
-                            input_variables_string = ", ".join(INPUT_VARIABLES)
+                            model.fit(X_train, y_train)
 
-                            model_result = {
-                                "model_type": MODEL_TYPE,
-                                "created_at": created_at,
-                                "int_or_ext": TEST_TYPE,
-                                "train_dataset": "PCG + RCG (inclusive)",
-                                "train_dataset_filename": TRAIN_DATASET_PATH.split("/")[-1],
-                                "test_dataset": test_dataset,
-                                "test_dataset_filename": EXTRAPOLATION_TEST_DATASET_PATH.split("/")[-1],
-                                "train_example_count": len(transformed_train_df),
-                                "test_example_count": len(transformed_test_df),
-                                "input_variables": input_variables_string,
-                                "output_variable": output_variable,
-                                "metric_of_interest": METRIC,
-                                "standardisation_function": STANDARDISATION_FUNCTION,
-                                "transform_function": TRANSFORM_FUNCTION,
-                                "r2_train_error": r2_train_error,
-                                "r2_test_error": r2_test_error,
-                                "rmse_train_error": rmse_train_error,
-                                "rmse_test_error": rmse_test_error,
-                            }
+                            y_pred_train = model.predict(X_train)
+                            y_pred_test = model.predict(X_test)
 
-                            MODEL_RESULT_DF = pd.concat([MODEL_RESULT_DF, pd.DataFrame([model_result])], ignore_index=True)
+                            created_at = pd.to_datetime('now').strftime("%Y-%m-%d %H:%M:%S")
 
-                        # ? Save model in joblib  
-                        model_filename = f"all_models/{MODEL_TYPE.replace(' ', '_')}_models/{METRIC}/{created_at_path_format}_{TEST_TYPE}_{STANDARDISATION_FUNCTION}_{TRANSFORM_FUNCTION}.joblib"
-                        os.makedirs(os.path.dirname(model_filename), exist_ok=True)
-                        joblib.dump(model, model_filename)
+                            created_at_path_format = created_at.replace(" ", "_").replace(":", "-")
+                            
+                            error_types = [
+                                "rmse", "mse", "mae", "mape", "r2", "medae", "explained_variance"
+                            ]
 
-    MODEL_RESULT_DF.to_csv(f"{created_at_path_format}_results.csv", index=False)
+                            for output_variable in output_variables:
+                                # for error_type in error_types:
+                                r2_train_error, r2_test_error = get_error_for_output_variable(
+                                    target_index=output_variables.index(output_variable),
+                                    y_train=y_train,
+                                    y_test=y_test,
+                                    y_pred_train=y_pred_train,
+                                    y_pred_test=y_pred_test,
+                                    output_variable=output_variable,
+                                    error_type='r2',
+                                    transform_function=TRANSFORM_FUNCTION,
+                                )
+                                rmse_train_error, rmse_test_error = get_error_for_output_variable(
+                                    target_index=output_variables.index(output_variable),
+                                    y_train=y_train,
+                                    y_test=y_test,
+                                    y_pred_train=y_pred_train,
+                                    y_pred_test=y_pred_test,
+                                    output_variable=output_variable,
+                                    error_type='rmse',
+                                    transform_function=TRANSFORM_FUNCTION,
+                                )
+                                
+                                input_variables_string = ", ".join(INPUT_VARIABLES)
+
+                                model_result = {
+                                    "model_type": MODEL_TYPE,
+                                    "created_at": created_at,
+                                    "int_or_ext": TEST_TYPE,
+                                    "train_dataset": "PCG + RCG (inclusive)",
+                                    "train_dataset_filename": TRAIN_DATASET_PATH.split("/")[-1],
+                                    "test_dataset": test_dataset,
+                                    "test_dataset_filename": EXTRAPOLATION_TEST_DATASET_PATH.split("/")[-1],
+                                    "train_example_count": len(transformed_train_df),
+                                    "test_example_count": len(transformed_test_df),
+                                    "input_variables": input_variables_string,
+                                    "output_variable": output_variable,
+                                    "metric_of_interest": METRIC,
+                                    "standardisation_function": STANDARDISATION_FUNCTION,
+                                    "transform_function": TRANSFORM_FUNCTION,
+                                    "r2_train_error": r2_train_error,
+                                    "r2_test_error": r2_test_error,
+                                    "rmse_train_error": rmse_train_error,
+                                    "rmse_test_error": rmse_test_error,
+                                }
+
+                                MODEL_RESULT_DF = pd.concat(
+                                    [
+                                        MODEL_RESULT_DF, 
+                                        pd.DataFrame([model_result])
+                                    ], 
+                                    ignore_index=True
+                                )
+
+                            # ? Save model in joblib  
+                            # model_filename = f"all_models/{MODEL_TYPE.replace(' ', '_')}_models/{METRIC}/{created_at_path_format}_{TEST_TYPE}_{STANDARDISATION_FUNCTION}_{TRANSFORM_FUNCTION}.joblib"
+                            joblib_path = f"{created_at_path_format}_{TEST_TYPE}_{STANDARDISATION_FUNCTION}"
+                            joblib_path = f"{joblib_path}_{TRANSFORM_FUNCTION}"
+
+                            if MODEL_TYPE == "XGBoost":
+                                joblib_path = f"{joblib_path}.json"
+                            else:
+                                joblib_path = f"{joblib_path}.joblib"
+
+                            model_filename = f"all_models/"
+                            model_filename = f"{model_filename}/{MODEL_TYPE.replace(' ', '_')}_models/"
+                            model_filename = f"{model_filename}/{METRIC}/"
+                            model_filename = f"{model_filename}/{joblib_path}"
+
+                            os.makedirs(os.path.dirname(model_filename), exist_ok=True)
+                            joblib.dump(model, model_filename)
+
+        MODEL_RESULT_DF.to_csv(f"{created_at_path_format}_results.csv", index=False)
 
 main()
