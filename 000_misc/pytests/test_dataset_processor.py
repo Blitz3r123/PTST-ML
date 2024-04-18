@@ -24,7 +24,7 @@ class TestDatasetProcessor(unittest.TestCase):
         )
         self.assertEqual(
             dp.get_longest_path_in_dir('pytests/test_data'), 
-            'pytests/test_data/test_data_two/a_folder_with_this_name/data.csv'
+            'pytests/test_data/normal_tests/600SEC_2344B_24P_12S_BE_UC_1DUR_100LC/p1_eicmp6.log'
         )
         self.assertEqual(
             dp.get_longest_path_in_dir('pytests/test_data/empty_test_data_folder'), 
@@ -32,11 +32,11 @@ class TestDatasetProcessor(unittest.TestCase):
         )
         self.assertEqual(
             dp.get_longest_path_in_dir('pytests/test_data/test_data_one'),
-            ""
+            "pytests/test_data/test_data_one/.DS_Store"
         )
         self.assertEqual(
             dp.get_longest_path_in_dir('pytests/test_data/test_data_two'), 
-            "pytests/test_data/test_data_two/a_folder_with_this_name/data.csv"
+            "pytests/test_data/test_data_two/a_folder_with_this_name/an_extra_folder/data.csv"
         )
 
     def test_get_test_parent_dirpath_from_fullpath(self):
@@ -60,6 +60,24 @@ class TestDatasetProcessor(unittest.TestCase):
         self.assertEqual(
             dp.get_test_parent_dirpath_from_fullpath("phd/qos_capture"),
             "phd/qos_capture"
+        )
+
+    def test_get_latency_df_from_testdir(self):
+        # TODO:
+        pass
+
+    def get_sub_metric_df_from_testdir(self):
+        # TODO:
+        pass
+
+    def get_test_param_df_from_testdir(self):
+        # TODO:
+        pass
+
+    def test_get_pub_file_from_testdir(self):
+        self.assertEqual(
+            dp.get_pub_file_from_testdir("pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"),
+            "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv"
         )
 
 if __name__ == '__main__':
