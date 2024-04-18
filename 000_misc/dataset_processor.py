@@ -17,12 +17,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 #--------------------------------------------------------------------------------------------------------------------------
-#                                                      CONSTANTS
-#--------------------------------------------------------------------------------------------------------------------------
-
-
-
-#--------------------------------------------------------------------------------------------------------------------------
 #                                                      FUNCTIONS
 #--------------------------------------------------------------------------------------------------------------------------
 def get_longest_path_in_dir(dir_path):
@@ -40,6 +34,17 @@ def get_longest_path_in_dir(dir_path):
                 longest_path_len = len(file_path)
     
     return longest_path
+
+def get_test_parent_dirpath_from_fullpath(longest_path=""):
+    if "/" not in longest_path:
+        logger.error(f"No / found in {longest_path}.")
+        return None
+
+    longest_path_items = longest_path.split("/")
+    if len(longest_path_items) <= 2:
+        return longest_path
+
+    return "/".join(longest_path_items[:-2])
 
 def main(sys_args=None):
     if not sys_args:
@@ -65,10 +70,14 @@ def main(sys_args=None):
     tests_dir_path = sys_args[0]
 
     # tests_dir_path should be in the format: dir_path/600SEC.../pub0.csv
+    # A single test should be in the final folder e.g. 600SEC.../
+    # So get the longest path and then go out 2 folders to see all tests.
+    # e.g. my_path/some_path/more_folders/600SEC.../pub0.csv
+    #   => my_path/some_path/more_folders/
 
-    get_longest_path_in_dir(tests_dir_path)
+    longest_path = get_longest_path_in_dir(tests_dir_path)
 
-    return True
+    test_parent_dirpath = get_test_parent_dirpath_from_fullpath(longest_path)
 
 
 if __name__ == "__main__":
