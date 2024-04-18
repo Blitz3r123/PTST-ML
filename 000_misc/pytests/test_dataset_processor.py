@@ -79,7 +79,10 @@ class TestDatasetProcessor(unittest.TestCase):
             dp.get_pub_file_from_testdir("pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"),
             "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv"
         )
-
+        self.assertEqual(
+            dp.get_pub_file_from_testdir("pytests/test_data/normal_tests/600SEC_2121B_6P_20S_BE_UC_1DUR_100LC/"),
+            None
+        )
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
     unittest.main()

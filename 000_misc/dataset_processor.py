@@ -11,6 +11,8 @@ import os
 import sys
 import pytest
 import logging
+import pandas as pd
+from icecream import ic
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +48,28 @@ def get_test_parent_dirpath_from_fullpath(longest_path=""):
 
     return "/".join(longest_path_items[:-2])
 
+def get_latency_df_from_testdir(test_dir):
+    pub_file = get_pub_file_from_testdir(test_dir)
+
+def get_sub_metric_df_from_testdir(test_dir, sub_metric):
+    # TODO:
+    pass
+
+def get_test_param_df_from_testdir(test_dir):
+    # TODO:
+    pass
+
+def get_pub_file_from_testdir(test_dir):
+    test_dir_contents = [os.path.join(test_dir, file) for file in os.listdir(test_dir)]
+    
+    pub_files = [file for file in test_dir_contents if file.endswith("pub_0.csv")]
+
+    if len(pub_files) == 0:
+        logger.error(f"No pub_0.csv files found in {test_dir}.")
+        return None
+
+    return pub_files[0]
+
 def main(sys_args=None):
     if not sys_args:
         logger.error("No sys args provided.")
@@ -76,9 +100,30 @@ def main(sys_args=None):
     #   => my_path/some_path/more_folders/
 
     longest_path = get_longest_path_in_dir(tests_dir_path)
-
     test_parent_dirpath = get_test_parent_dirpath_from_fullpath(longest_path)
 
+    test_dirs = [os.path.join(test_parent_dirpath, dir) for dir in os.listdir(test_parent_dirpath)]
+
+    for test_dir in test_dirs:
+        test_param_df = get_test_param_df_from_testdir(test_dir)
+        latency_df = get_latency_df_from_testdir(test_dir)
+        throughput_df = get_sub_metric_df_from_testdir(test_dir, 'throughput')
+        sample_rate_df = get_sub_metric_df_from_testdir(test_dir, 'sample_rate')
+        lost_samples_df = get_sub_metric_df_from_testdir(test_dir, 'lost_samples')
+        lost_samples_percentage_df = get_sub_metric_df_from_testdir(test_dir, 'lost_samples_percentage')
+        received_samples_df = get_sub_metric_df_from_testdir(test_dir, 'received_samples')
+        received_samples_percentage_df = get_sub_metric_df_from_testdir(test_dir, 'received_samples_percentage')
+
+        test_df = pd.concat([
+            test_param_df,
+            latency_df,
+            throughput_df,
+            sample_rate_df,
+            lost_samples_df,
+            lost_samples_percentage_df,
+            received_samples_df,
+            received_samples_percentage_df,
+        ], axis=1)
 
 if __name__ == "__main__":
     if pytest.main(["-q", "./pytests", "--exitfirst"]) == 0:
