@@ -1,5 +1,6 @@
 import unittest
 import warnings
+import pandas as pd
 
 import dataset_processor as dp
 
@@ -63,23 +64,59 @@ class TestDatasetProcessor(unittest.TestCase):
         )
 
     def test_get_latency_df_from_testdir(self):
-        ...
+        self.assertEqual(
+            type(
+                dp.get_latency_df_from_testdir(
+                    "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
+                )
+            ),
+            pd.DataFrame
+
+        )
 
     def get_sub_metric_df_from_testdir(self):
         # TODO:
         pass
 
     def get_test_param_df_from_testdir(self):
-        # TODO:
-        pass
+        self.assertEqual(
+            dp.get_test_param_df_from_testdir(
+                "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
+            ),
+            pd.DataFrame(
+                [
+                    [600, 2241, 6, 20, 0, 0, 1, 100]
+                ],
+                columns=[
+                    'duration_sec',
+                    'datalen_byte',
+                    'pub_count',
+                    'sub_count',
+                    'use_reliable',
+                    'use_multicast',
+                    'durability',
+                    'latency_count'
+                ]
+            )
+        )
 
     def test_get_pub_file_from_testdir(self):
         self.assertEqual(
             dp.get_pub_file_from_testdir("pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"),
             "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv"
         )
+
         self.assertEqual(
-            dp.get_pub_file_from_testdir("pytests/test_data/normal_tests/600SEC_2121B_6P_20S_BE_UC_1DUR_100LC/"),
+            dp.get_pub_file_from_testdir(
+                "pytests/test_data/normal_tests/600SEC_2121B_6P_20S_BE_UC_1DUR_100LC/"
+            ),
+            None
+        )
+
+        self.assertEqual(
+            dp.get_pub_file_from_testdir(
+                "some_random/file_path/that_does_not/exist"
+            ),
             None
         )
 if __name__ == '__main__':

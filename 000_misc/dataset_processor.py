@@ -48,10 +48,55 @@ def get_test_parent_dirpath_from_fullpath(longest_path: str = "") -> str:
 
     return "/".join(longest_path_items[:-2])
 
-def get_latency_df_from_testdir(test_dir: str) -> str:
+def get_file_line_count(file_path):
+    with open(file_path, "r") as f:
+        num_lines = sum(1 for line in f)
+
+    return num_lines
+
+def get_latency_df_from_testdir(test_dir: str) -> pd.DataFrame:
+    logger.info(f"Getting latency df from {test_dir}.")
     pub_file = get_pub_file_from_testdir(test_dir)
     if pub_file is None:
         return None
+
+    file_line_count = get_file_line_count(pub_file)
+    if file_line_count <= 5:
+        logger.warning(f"Only {file_line_count} lines found in {pub_file}.")
+        return None
+
+    logger.info(f"Reading first 5 lines of {pub_file}.")
+    # ? Read the first 5 lines of the file
+    with open(pub_file, "r") as f:
+        head = [next(f) for x in range(5)]
+
+    logger.info(f"Looking for length in first 5 lines of {pub_file}.")
+    # ? Look for "length" in the first 5 lines
+    row_with_headings = None
+    for i in range(len(head)):
+        if "length" in head[i].lower():
+            row_with_headings = i
+            break
+    
+    logger.info(f"Reading last 5 lines of {pub_file}.")
+    # ? Read the last 5 lines of the file
+    with open(pub_file, "r") as f:
+        tail = f.readlines()[-5:]
+
+    try:
+        logger.info(f"Processing {pub_file} into dataframe.")
+        # ? Read the CSV file using the row_with_headings and skip last 5 lines
+        pub_df = pd.read_csv(
+            pub_file,
+            skiprows=row_with_headings,
+            skipfooter=5,
+            engine="python"
+        )
+    except Exception as e:
+        logger.error(f"Could not read pub_0.csv file: {e}")
+        return None
+
+    return pub_df
 
 def get_sub_metric_df_from_testdir(test_dir: str, sub_metric: str) -> pd.DataFrame:
     # TODO:
@@ -61,8 +106,25 @@ def get_test_param_df_from_testdir(test_dir: str) -> pd.DataFrame:
     # TODO:
     pass
 
+def get_filepaths_inside_dir(test_dir: str) -> [str]:
+    if not os.path.isdir(test_dir):
+        logger.error(f"{test_dir} is NOT a directory.")
+        return None
+
+    file_paths = []
+    for file in os.listdir(test_dir):
+        file_paths.append(os.path.join(test_dir, file))
+
+    return file_paths
+
 def get_pub_file_from_testdir(test_dir: str) -> str:
-    test_dir_contents = [os.path.join(test_dir, file) for file in os.listdir(test_dir)]
+    if not os.path.exists(test_dir):
+        logger.error(f"{test_dir} does NOT exist.")
+        return None
+
+    test_dir_contents = get_filepaths_inside_dir(test_dir)
+    if test_dir_contents == None:
+        return None
     
     pub_files = [file for file in test_dir_contents if file.endswith("pub_0.csv")]
 
@@ -101,12 +163,17 @@ def main(sys_args: [str] = None) -> None:
     # e.g. my_path/some_path/more_folders/600SEC.../pub0.csv
     #   => my_path/some_path/more_folders/
 
+    logger.info(f"Getting longest path for {tests_dir_path}.")
     longest_path = get_longest_path_in_dir(tests_dir_path)
+
+    logger.info(f"Getting test parent dirpath from {longest_path}.")
     test_parent_dirpath = get_test_parent_dirpath_from_fullpath(longest_path)
 
     test_dirs = [os.path.join(test_parent_dirpath, dir) for dir in os.listdir(test_parent_dirpath)]
+    logger.info(f"Found {len(test_dirs)} tests in {test_parent_dirpath}.")
 
     for test_dir in test_dirs:
+        logger.info(f"[{test_dirs.index(test_dir) + 1}/{len(test_dirs)}] Processing {test_dir}...")
         test_param_df = get_test_param_df_from_testdir(test_dir)
         latency_df = get_latency_df_from_testdir(test_dir)
         throughput_df = get_sub_metric_df_from_testdir(test_dir, 'throughput')
