@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 #--------------------------------------------------------------------------------------------------------------------------
 #                                                      FUNCTIONS
 #--------------------------------------------------------------------------------------------------------------------------
-def get_longest_path_in_dir(dir_path):
+def get_longest_path_in_dir(dir_path: str) -> str:
     """
     Get the longest path in a directory.
     """
@@ -37,7 +37,7 @@ def get_longest_path_in_dir(dir_path):
     
     return longest_path
 
-def get_test_parent_dirpath_from_fullpath(longest_path=""):
+def get_test_parent_dirpath_from_fullpath(longest_path: str = "") -> str:
     if "/" not in longest_path:
         logger.error(f"No / found in {longest_path}.")
         return None
@@ -48,18 +48,20 @@ def get_test_parent_dirpath_from_fullpath(longest_path=""):
 
     return "/".join(longest_path_items[:-2])
 
-def get_latency_df_from_testdir(test_dir):
+def get_latency_df_from_testdir(test_dir: str) -> str:
     pub_file = get_pub_file_from_testdir(test_dir)
+    if pub_file is None:
+        return None
 
-def get_sub_metric_df_from_testdir(test_dir, sub_metric):
+def get_sub_metric_df_from_testdir(test_dir: str, sub_metric: str) -> pd.DataFrame:
     # TODO:
     pass
 
-def get_test_param_df_from_testdir(test_dir):
+def get_test_param_df_from_testdir(test_dir: str) -> pd.DataFrame:
     # TODO:
     pass
 
-def get_pub_file_from_testdir(test_dir):
+def get_pub_file_from_testdir(test_dir: str) -> str:
     test_dir_contents = [os.path.join(test_dir, file) for file in os.listdir(test_dir)]
     
     pub_files = [file for file in test_dir_contents if file.endswith("pub_0.csv")]
@@ -70,7 +72,7 @@ def get_pub_file_from_testdir(test_dir):
 
     return pub_files[0]
 
-def main(sys_args=None):
+def main(sys_args: [str] = None) -> None:
     if not sys_args:
         logger.error("No sys args provided.")
         return False
