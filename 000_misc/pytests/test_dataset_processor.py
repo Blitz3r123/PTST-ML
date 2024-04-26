@@ -63,6 +63,35 @@ class TestDatasetProcessor(unittest.TestCase):
             "phd/qos_capture"
         )
 
+    def test_get_headings_from_pub_file(self):
+        self.assertEqual(
+            dp.get_headings_from_pub_file(
+                'pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv'
+            ),
+            [
+                'Length (Bytes)',
+                'Latency (μs)',
+                'Ave (μs)',
+                'Std (μs)',
+                'Min (μs)',
+                'Max (μs)'
+            ]
+        )
+
+        self.assertEqual(
+            dp.get_headings_from_pub_file(
+                None
+            ),
+            []
+        )
+
+        self.assertEqual(
+            dp.get_headings_from_pub_file(
+                'some_file_that/does_not/exist.csv'
+            ),
+            []
+        )
+
     def test_get_latency_df_from_testdir(self):
         self.assertEqual(
             type(

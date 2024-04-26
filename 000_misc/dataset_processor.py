@@ -54,49 +54,70 @@ def get_file_line_count(file_path):
 
     return num_lines
 
+def get_headings_from_pub_file(pub_file: str) -> list[str]:
+
+    if pub_file is None:
+        return []
+
+    if not os.path.exists(pub_file):
+        logger.error(f"{pub_file} is not a valid path.")
+        return []
+
+    with open(pub_file, 'r') as f:
+        file_head = [next(f) for x in range(10)]
+
+    for line in file_head:
+        if 'length' in line.lower() and 'latency' in line.lower():
+            headings = line.strip().split(",")
+            headings = [heading.strip() for heading in headings]
+
+    return headings
+
 def get_latency_df_from_testdir(test_dir: str) -> pd.DataFrame:
     logger.info(f"Getting latency df from {test_dir}.")
     pub_file = get_pub_file_from_testdir(test_dir)
     if pub_file is None:
         return None
 
-    file_line_count = get_file_line_count(pub_file)
-    if file_line_count <= 5:
-        logger.warning(f"Only {file_line_count} lines found in {pub_file}.")
-        return None
+    headings = get_headings_from_pub_file(pub_file)
 
-    logger.info(f"Reading first 5 lines of {pub_file}.")
-    # ? Read the first 5 lines of the file
-    with open(pub_file, "r") as f:
-        head = [next(f) for x in range(5)]
-
-    logger.info(f"Looking for length in first 5 lines of {pub_file}.")
-    # ? Look for "length" in the first 5 lines
-    row_with_headings = None
-    for i in range(len(head)):
-        if "length" in head[i].lower():
-            row_with_headings = i
-            break
-    
-    logger.info(f"Reading last 5 lines of {pub_file}.")
-    # ? Read the last 5 lines of the file
-    with open(pub_file, "r") as f:
-        tail = f.readlines()[-5:]
-
-    try:
-        logger.info(f"Processing {pub_file} into dataframe.")
-        # ? Read the CSV file using the row_with_headings and skip last 5 lines
-        pub_df = pd.read_csv(
-            pub_file,
-            skiprows=row_with_headings,
-            skipfooter=5,
-            engine="python"
-        )
-    except Exception as e:
-        logger.error(f"Could not read pub_0.csv file: {e}")
-        return None
-
-    return pub_df
+    # file_line_count = get_file_line_count(pub_file)
+    # if file_line_count <= 5:
+    #     logger.warning(f"Only {file_line_count} lines found in {pub_file}.")
+    #     return None
+    #
+    # logger.info(f"Reading first 5 lines of {pub_file}.")
+    # # ? Read the first 5 lines of the file
+    # with open(pub_file, "r") as f:
+    #     head = [next(f) for x in range(5)]
+    #
+    # logger.info(f"Looking for length in first 5 lines of {pub_file}.")
+    # # ? Look for "length" in the first 5 lines
+    # row_with_headings = None
+    # for i in range(len(head)):
+    #     if "length" in head[i].lower():
+    #         row_with_headings = i
+    #         break
+    #
+    # logger.info(f"Reading last 5 lines of {pub_file}.")
+    # # ? Read the last 5 lines of the file
+    # with open(pub_file, "r") as f:
+    #     tail = f.readlines()[-5:]
+    #
+    # try:
+    #     logger.info(f"Processing {pub_file} into dataframe.")
+    #     # ? Read the CSV file using the row_with_headings and skip last 5 lines
+    #     pub_df = pd.read_csv(
+    #         pub_file,
+    #         skiprows=row_with_headings,
+    #         skipfooter=5,
+    #         engine="python"
+    #     )
+    # except Exception as e:
+    #     logger.error(f"Could not read pub_0.csv file: {e}")
+    #     return None
+    #
+    # return pub_df
 
 def get_sub_metric_df_from_testdir(test_dir: str, sub_metric: str) -> pd.DataFrame:
     # TODO:
