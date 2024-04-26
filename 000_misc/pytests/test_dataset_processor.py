@@ -71,7 +71,6 @@ class TestDatasetProcessor(unittest.TestCase):
                 )
             ),
             pd.DataFrame
-
         )
 
     def get_sub_metric_df_from_testdir(self):
