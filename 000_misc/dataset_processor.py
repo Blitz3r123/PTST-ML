@@ -169,19 +169,50 @@ def main(sys_args: [str] = None) -> None:
     logger.info(f"Getting test parent dirpath from {longest_path}.")
     test_parent_dirpath = get_test_parent_dirpath_from_fullpath(longest_path)
 
-    test_dirs = [os.path.join(test_parent_dirpath, dir) for dir in os.listdir(test_parent_dirpath)]
+    test_dirs = [
+        os.path.join(
+            test_parent_dirpath, 
+            dir
+        ) for dir in os.listdir(
+            test_parent_dirpath
+        )
+    ]
     logger.info(f"Found {len(test_dirs)} tests in {test_parent_dirpath}.")
 
     for test_dir in test_dirs:
-        logger.info(f"[{test_dirs.index(test_dir) + 1}/{len(test_dirs)}] Processing {test_dir}...")
-        test_param_df = get_test_param_df_from_testdir(test_dir)
-        latency_df = get_latency_df_from_testdir(test_dir)
-        throughput_df = get_sub_metric_df_from_testdir(test_dir, 'throughput')
-        sample_rate_df = get_sub_metric_df_from_testdir(test_dir, 'sample_rate')
-        lost_samples_df = get_sub_metric_df_from_testdir(test_dir, 'lost_samples')
-        lost_samples_percentage_df = get_sub_metric_df_from_testdir(test_dir, 'lost_samples_percentage')
-        received_samples_df = get_sub_metric_df_from_testdir(test_dir, 'received_samples')
-        received_samples_percentage_df = get_sub_metric_df_from_testdir(test_dir, 'received_samples_percentage')
+        logger.info(
+            f"[{test_dirs.index(test_dir) + 1}/{len(test_dirs)}] Processing {test_dir}..."
+        )
+        test_param_df = get_test_param_df_from_testdir(
+            test_dir
+        )
+        latency_df = get_latency_df_from_testdir(
+            test_dir
+        )
+        throughput_df = get_sub_metric_df_from_testdir(
+            test_dir, 
+            'throughput'
+        )
+        sample_rate_df = get_sub_metric_df_from_testdir(
+            test_dir, 
+            'sample_rate'
+        )
+        lost_samples_df = get_sub_metric_df_from_testdir(
+            test_dir, 
+            'lost_samples'
+        )
+        lost_samples_percentage_df = get_sub_metric_df_from_testdir(
+            test_dir, 
+            'lost_samples_percentage'
+        )
+        received_samples_df = get_sub_metric_df_from_testdir(
+            test_dir, 
+            'received_samples'
+        )
+        received_samples_percentage_df = get_sub_metric_df_from_testdir(
+            test_dir, 
+            'received_samples_percentage'
+        )
 
         test_df = pd.concat([
             test_param_df,
