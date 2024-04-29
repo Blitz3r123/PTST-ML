@@ -6,18 +6,6 @@ import dataset_processor as dp
 
 class TestDatasetProcessor(unittest.TestCase):
 
-    def test_main(self):
-        pass
-        # self.assertEqual(dp.main(), False)
-        # self.assertEqual(dp.main([]), False)
-        # self.assertEqual(dp.main(['']), False)
-        # self.assertEqual(dp.main(['something_that_doesnt_exist']), False)
-        # self.assertEqual(dp.main(['pytests/test_data']), True)
-        # self.assertEqual(dp.main(['pytests/test_data/empty_test_data_folder']), False)
-        # self.assertEqual(dp.main(['pytests/test_data/empty_test_data_folder']), False)
-        # self.assertEqual(dp.main(['pytests/test_data/test_data_one']), False)
-        # self.assertEqual(dp.main(['pytests/test_data/test_data_two']), False)
-
     def test_get_longest_path_in_dir(self):
         self.assertEqual(
             dp.get_longest_path_in_dir(''),
@@ -111,33 +99,20 @@ class TestDatasetProcessor(unittest.TestCase):
             pd.DataFrame
         )
 
-
-
-    def get_sub_metric_df_from_testdir(self):
+    def test_get_sub_metric_df_from_testdir(self):
         # TODO:
         pass
 
-    def get_test_param_df_from_testdir(self):
-        self.assertEqual(
-            dp.get_test_param_df_from_testdir(
-                "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
-            ),
-            pd.DataFrame(
-                [
-                    [600, 2241, 6, 20, 0, 0, 1, 100]
-                ],
-                columns=[
-                    'duration_sec',
-                    'datalen_byte',
-                    'pub_count',
-                    'sub_count',
-                    'use_reliable',
-                    'use_multicast',
-                    'durability',
-                    'latency_count'
-                ]
-            )
-        )
+    def test_get_test_param_df_from_testdir(self):
+        param_df = dp.get_test_param_df_from_testdir("pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/")
+        self.assertEqual(param_df.iloc[0]['duration_sec'], 600)
+        self.assertEqual(param_df.iloc[0]['datalen_byte'], 2241)
+        self.assertEqual(param_df.iloc[0]['pub_count'], 6)
+        self.assertEqual(param_df.iloc[0]['sub_count'], 20)
+        self.assertEqual(param_df.iloc[0]['use_reliable'], 0)
+        self.assertEqual(param_df.iloc[0]['use_multicast'], 0)
+        self.assertEqual(param_df.iloc[0]['durability'], 1)
+        self.assertEqual(param_df.iloc[0]['latency_count'], 100)
 
     def test_get_pub_file_from_testdir(self):
         self.assertEqual(
@@ -158,6 +133,11 @@ class TestDatasetProcessor(unittest.TestCase):
             ),
             None
         )
+
+    def test_get_test_name_from_test_dir(self):
+        # TODO
+        pass
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
     unittest.main()

@@ -190,8 +190,65 @@ def get_sub_metric_df_from_testdir(test_dir: str, sub_metric: str) -> pd.DataFra
     pass
 
 def get_test_param_df_from_testdir(test_dir: str) -> pd.DataFrame:
-    # TODO:
-    pass
+    test_name = get_test_name_from_test_dir(test_dir)
+    test_name_items = test_name.split("_")
+
+    if 'sec' in test_name_items[0].lower():
+        duration_sec = test_name_items[0].lower().replace("sec", "")
+    else:
+        duration_sec = test_name_items[0].lower().replace("s", "")
+
+    try:
+        duration_sec = int(duration_sec)
+    except Exception as e:
+        logger.error(f"{e}: {test_name}")
+
+    datalen_byte = int(test_name_items[1].lower().replace("b", ""))
+    pub_count = int(test_name_items[2].lower().replace("p", ""))
+    sub_count = int(test_name_items[3].lower().replace("s", ""))
+    durability = int(test_name_items[6].lower().replace("dur", ""))
+    latency_count = int(test_name_items[7].lower().replace("lc", ""))
+
+    if test_name_items[4].lower() == 'be':
+        use_reliable = 0
+    elif test_name_items[4].lower() == 'rel':
+        use_reliable = 1
+    else:
+        logger.warning(f"Unknown item found when parsing reliability usage for {test_name}:\t{test_name_items[4]}")
+
+    if test_name_items[5].lower() == 'uc':
+        use_multicast = 0
+    elif test_name_items[5].lower() == 'mc':
+        use_multicast = 1
+    else:
+        logger.warning(f"Unknown item found when parsing multicast usage for {test_name}:\t{test_name_items[5]}")
+
+    df = pd.DataFrame(
+        [[
+            duration_sec,
+            datalen_byte,
+            pub_count,
+            sub_count,
+            use_reliable,
+            use_multicast,
+            durability,
+            latency_count
+        ]],
+        columns=[
+            'duration_sec',
+            'datalen_byte',
+            'pub_count',
+            'sub_count',
+            'use_reliable',
+            'use_multicast',
+            'durability',
+            'latency_count'
+
+        ]
+    )
+
+    return df
+
 
 def get_filepaths_inside_dir(test_dir: str) -> [str]:
     if not os.path.isdir(test_dir):
@@ -220,6 +277,15 @@ def get_pub_file_from_testdir(test_dir: str) -> str:
         return None
 
     return pub_files[0]
+
+def get_test_name_from_test_dir(test_dir: str) -> str:
+    if test_dir[-1] == "/":
+        test_dir = test_dir[:-1]
+
+    test_dir_items = test_dir.split("/")
+    test_name = test_dir_items[-1]
+
+    return test_name
 
 def main(sys_args: [str] = None) -> None:
     if not sys_args:
@@ -269,12 +335,16 @@ def main(sys_args: [str] = None) -> None:
     tests_without_results_count = 0
 
     for test_dir in test_dirs:
+        if not os.path.isdir(test_dir):
+            continue
+
         logger.info(
             f"[{test_dirs.index(test_dir) + 1}/{len(test_dirs)}] Processing {test_dir}..."
         )
-        test_param_df = get_test_param_df_from_testdir(
-            test_dir
-        )
+        # test_param_df = get_test_param_df_from_testdir(
+        #     test_dir
+        # )
+
         latency_df = get_latency_df_from_testdir(
             test_dir
         )
@@ -309,7 +379,6 @@ def main(sys_args: [str] = None) -> None:
         )
 
         test_df = pd.concat([
-            test_param_df,
             latency_df,
             throughput_df,
             sample_rate_df,
@@ -319,10 +388,11 @@ def main(sys_args: [str] = None) -> None:
             received_samples_percentage_df,
         ], axis=1)
 
-    now = datetime.now()
-    formatted_date_time = now.strftime("%Y_%m_%d_%H_%M_%S")
+        os.makedirs("./summaries", exist_ok=True)
 
-    test_df.to_csv(f"{formatted_date_time}_ds.csv", index=False)
+        test_name = get_test_name_from_test_dir(test_dir)
+        test_csv_filename = f"./summaries/{test_name}.csv"
+        test_df.to_csv(test_csv_filename, index=False)
 
 if __name__ == "__main__":
     if pytest.main(["-q", "./pytests", "--exitfirst"]) == 0:
