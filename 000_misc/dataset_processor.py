@@ -11,12 +11,26 @@ import os
 import sys
 import pytest
 import logging
+import re
 import pandas as pd
 from icecream import ic
+from datetime import datetime
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, 
+    filename="dataset_processor.log", 
+    filemode="w",
+    format='%(asctime)s \t%(levelname)s \t%(message)s'
+)
 logger = logging.getLogger(__name__)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s \t%(levelname)s \t%(message)s')
+console_handler.setFormatter(formatter)
+
+logger.addHandler(console_handler)
 
 #--------------------------------------------------------------------------------------------------------------------------
 #                                                      FUNCTIONS
@@ -32,8 +46,9 @@ def get_longest_path_in_dir(dir_path: str) -> str:
         for file in files:
             file_path = os.path.join(root, file)
             if len(file_path) > longest_path_len:
-                longest_path = file_path
-                longest_path_len = len(file_path)
+                if "leftovers" not in file_path.lower() and "logs" not in file_path.lower():
+                    longest_path = file_path
+                    longest_path_len = len(file_path)
     
     return longest_path
 
@@ -64,6 +79,13 @@ def get_headings_from_pub_file(pub_file: str) -> list[str]:
         return []
 
     with open(pub_file, 'r') as f:
+        file_line_count = sum(1 for _ in f)
+
+    if file_line_count < 10:
+        logger.error(f"Less than 10 lines found in {pub_file}.")
+        return []
+
+    with open(pub_file, 'r') as f:
         file_head = [next(f) for x in range(10)]
 
     for line in file_head:
@@ -80,6 +102,50 @@ def get_latency_df_from_testdir(test_dir: str) -> pd.DataFrame:
         return None
 
     headings = get_headings_from_pub_file(pub_file)
+
+    headings_count = len(headings)
+
+    if headings_count == 0:
+        logger.error(f"No headings found in pub_0.csv of {test_dir}.")
+        return None
+
+    with open(pub_file, 'r') as f:
+        data = []
+        for line in f:
+            # Here we've reached the end of the results
+            # so we don't need to read the rest of the file
+            if 'summary' in line.strip().lower():
+                break
+
+            line_items = line.strip().split(",")
+
+            if len(line_items) == headings_count:
+                number_pattern_regex = re.compile(r'^\d+(\.\d+)?$')
+                line_items = [item.strip() for item in line_items]
+                items_are_numbers = all([number_pattern_regex.match(item) for item in line_items])
+
+                if(items_are_numbers):
+                    values = [float(item) for item in line_items]
+                    data.append(values)
+
+    df = pd.DataFrame(data, columns=headings)
+    df.drop(
+        columns=[
+            'Length (Bytes)',
+            'Ave (μs)',
+            'Std (μs)',
+            'Min (μs)',
+            'Max (μs)'
+        ],
+        inplace=True
+    )
+    df.reset_index(
+        drop=True, 
+        inplace=True
+    )
+    df.rename(columns={"Latency (μs)": "latency_us"})
+
+    return df
 
     # file_line_count = get_file_line_count(pub_file)
     # if file_line_count <= 5:
@@ -199,6 +265,8 @@ def main(sys_args: [str] = None) -> None:
         )
     ]
     logger.info(f"Found {len(test_dirs)} tests in {test_parent_dirpath}.")
+    
+    tests_without_results_count = 0
 
     for test_dir in test_dirs:
         logger.info(
@@ -210,6 +278,11 @@ def main(sys_args: [str] = None) -> None:
         latency_df = get_latency_df_from_testdir(
             test_dir
         )
+        if latency_df is None:
+            logger.error(f"No latency results found for {test_dir}.")
+            tests_without_results_count += 1
+            continue
+
         throughput_df = get_sub_metric_df_from_testdir(
             test_dir, 
             'throughput'
@@ -245,6 +318,11 @@ def main(sys_args: [str] = None) -> None:
             received_samples_df,
             received_samples_percentage_df,
         ], axis=1)
+
+    now = datetime.now()
+    formatted_date_time = now.strftime("%Y_%m_%d_%H_%M_%S")
+
+    test_df.to_csv(f"{formatted_date_time}_ds.csv", index=False)
 
 if __name__ == "__main__":
     if pytest.main(["-q", "./pytests", "--exitfirst"]) == 0:

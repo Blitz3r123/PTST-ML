@@ -102,6 +102,17 @@ class TestDatasetProcessor(unittest.TestCase):
             pd.DataFrame
         )
 
+        self.assertEqual(
+            type(
+                dp.get_latency_df_from_testdir(
+                    "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
+                )
+            ),
+            pd.DataFrame
+        )
+
+
+
     def get_sub_metric_df_from_testdir(self):
         # TODO:
         pass
