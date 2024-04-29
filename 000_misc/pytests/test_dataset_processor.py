@@ -29,6 +29,7 @@ class TestDatasetProcessor(unittest.TestCase):
         )
 
     def test_get_test_parent_dirpath_from_fullpath(self):
+        # Normal Case
         self.assertEqual(
             dp.get_test_parent_dirpath_from_fullpath(
                 "phd/year_one/machine_learning/experiments/qos_capture/600SEC_200B/pub.csv"
@@ -36,16 +37,19 @@ class TestDatasetProcessor(unittest.TestCase):
             "phd/year_one/machine_learning/experiments/qos_capture"
         )
 
+        # Empty Case
         self.assertEqual(
             dp.get_test_parent_dirpath_from_fullpath(""),
             None
         )
 
+        # Empty Case
         self.assertEqual(
             dp.get_test_parent_dirpath_from_fullpath(),
             None
         )
 
+        # Edge Case
         self.assertEqual(
             dp.get_test_parent_dirpath_from_fullpath("phd/qos_capture"),
             "phd/qos_capture"
@@ -63,6 +67,16 @@ class TestDatasetProcessor(unittest.TestCase):
                 'Std (μs)',
                 'Min (μs)',
                 'Max (μs)'
+            ]
+        )
+
+        self.assertEqual(
+            dp.get_headings_from_pub_file(
+                'pytests/test_data/normal_tests/600SEC_2121B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv'
+            ),
+            [
+                'Length (Bytes)',
+                'Latency (μs)',
             ]
         )
 
@@ -123,6 +137,13 @@ class TestDatasetProcessor(unittest.TestCase):
         self.assertEqual(
             dp.get_pub_file_from_testdir(
                 "pytests/test_data/normal_tests/600SEC_2121B_6P_20S_BE_UC_1DUR_100LC/"
+            ),
+            "pytests/test_data/normal_tests/600SEC_2121B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv"
+        )
+
+        self.assertEqual(
+            dp.get_pub_file_from_testdir(
+                "pytests/test_data/normal_tests/600SEC_212B_6P_20S_BE_UC_1DUR_100LC/"
             ),
             None
         )
