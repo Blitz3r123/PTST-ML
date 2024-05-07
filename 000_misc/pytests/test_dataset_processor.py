@@ -113,9 +113,41 @@ class TestDatasetProcessor(unittest.TestCase):
             pd.DataFrame
         )
 
+    def test_get_sub_files_from_testdir(self):
+        sub_files = dp.get_sub_files_from_testdir(
+            "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
+        )
+
+        self.assertEqual(len(sub_files), 20)
+
+    def test_get_sub_headings_from_sub_file(self):
+        sub_filepath = "pytests/test_data/normal_tests/600SEC_212B_6P_20S_BE_UC_1DUR_100LC/sub_0.csv"
+
+        sub_headings = dp.get_headings_from_sub_file(sub_filepath)
+        self.assertEqual(
+            sub_headings,
+            [
+                'Length (Bytes)',
+                'Total Samples',
+                'Samples/s',
+                'Avg Samples/s',
+                'Mbps',
+                'Avg Mbps',
+                'Lost Samples',
+                'Lost Samples (%)'
+            ]
+        )
+
     def test_get_sub_metric_df_from_testdir(self):
-        # TODO:
-        pass
+        df = dp.get_sub_metric_df_from_testdir(
+            "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/",
+            "mbps"
+        )
+
+        self.assertEqual(
+            type(df),
+            pd.DataFrame
+        )
 
     def test_get_test_param_df_from_testdir(self):
         param_df = dp.get_test_param_df_from_testdir("pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/")
@@ -156,8 +188,25 @@ class TestDatasetProcessor(unittest.TestCase):
         )
 
     def test_get_test_name_from_test_dir(self):
-        # TODO
-        pass
+        # Normal Case
+        test_name = dp.get_test_name_from_test_dir(
+            "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
+        )
+        self.assertEqual(
+            test_name,
+            "600SEC_2241B_6P_20S_BE_UC_1DUR_100LC"
+        )
+
+        # Empty Case
+        self.assertEqual(
+            dp.get_test_name_from_test_dir(""),
+            None
+        )
+
+        self.assertEqual(
+            dp.get_test_name_from_test_dir(),
+            None
+        )
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
