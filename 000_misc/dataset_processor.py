@@ -57,13 +57,25 @@ def get_longest_path_in_dir(dir_path: str = "") -> str:
     return longest_path
 
 def get_test_parent_dirpath_from_fullpath(longest_path: str = "") -> str:
+    """
+    Takes a path and returns the third last folder as path.
+    e.g.
+        phd/year_one/machine_learning/experiments/qos_capture/600SEC_200B/pub.csv
+
+        will give back:
+
+        phd/year_one/machine_learning/experiments/qos_capture
+    """
+
     if "/" not in longest_path:
         logger.error(f"No / found in {longest_path}.")
         return None
 
     longest_path_items = longest_path.split("/")
     if len(longest_path_items) <= 2:
-        return longest_path
+        logger.error(f"Can't get test parent dirpath of a path with less than 3 nests.")
+        logger.error(f"{longest_path}")
+        return None
 
     return "/".join(longest_path_items[:-2])
 
@@ -492,6 +504,9 @@ def main(sys_args: [str] = None) -> None:
 
     logger.info(f"Getting longest path for {tests_dir_path}.")
     longest_path = get_longest_path_in_dir(tests_dir_path)
+    if longest_path is None:
+        logger.error(f"Couldn't get longest path for {tests_dir_path}.")
+        return
 
     logger.info(f"Getting test parent dirpath from {longest_path}.")
     test_parent_dirpath = get_test_parent_dirpath_from_fullpath(longest_path)

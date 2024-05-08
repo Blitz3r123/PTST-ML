@@ -56,7 +56,14 @@ class TestDatasetProcessor(unittest.TestCase):
         # Edge Case
         self.assertEqual(
             dp.get_test_parent_dirpath_from_fullpath("phd/qos_capture"),
-            "phd/qos_capture"
+            None
+        )
+
+        self.assertEqual(
+            dp.get_test_parent_dirpath_from_fullpath(
+                "phd/"
+            ),
+            None
         )
 
     def test_get_headings_from_pub_file(self):
