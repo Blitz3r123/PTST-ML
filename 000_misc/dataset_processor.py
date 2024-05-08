@@ -253,8 +253,24 @@ def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> 
     return full_df
 
 def get_test_param_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
+    if test_dir == "":
+        logger.error(f"No test_dir passed to get_test_param_df_from_testdir.")
+        return None
+
+    if not os.path.exists(test_dir):
+        logger.error(f"{test_dir} does NOT exist.")
+        return None
+
+    if not os.path.isdir(test_dir):
+        logger.error(f"{test_dir} is NOT a directory.")
+        return None
+
     test_name = get_test_name_from_test_dir(test_dir)
     test_name_items = test_name.split("_")
+
+    if len(test_name_items) != 8:
+        logger.error(f"{len(test_name_items)} items found instead of 8.")
+        return None
 
     if 'sec' in test_name_items[0].lower():
         duration_sec = test_name_items[0].lower().replace("sec", "")
@@ -490,7 +506,7 @@ def main(sys_args: [str] = None) -> None:
 
     final_df = pd.DataFrame()
 
-    for test_dir in test_dirs:
+    for test_dir in test_dirs[:10]:
         if not os.path.isdir(test_dir):
             continue
 

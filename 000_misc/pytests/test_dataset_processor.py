@@ -150,7 +150,9 @@ class TestDatasetProcessor(unittest.TestCase):
         )
 
     def test_get_test_param_df_from_testdir(self):
-        param_df = dp.get_test_param_df_from_testdir("pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/")
+        param_df = dp.get_test_param_df_from_testdir(
+            "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
+        )
         self.assertEqual(param_df.iloc[0]['duration_sec'], 600)
         self.assertEqual(param_df.iloc[0]['datalen_byte'], 2241)
         self.assertEqual(param_df.iloc[0]['pub_count'], 6)
@@ -159,6 +161,21 @@ class TestDatasetProcessor(unittest.TestCase):
         self.assertEqual(param_df.iloc[0]['use_multicast'], 0)
         self.assertEqual(param_df.iloc[0]['durability'], 1)
         self.assertEqual(param_df.iloc[0]['latency_count'], 100)
+
+        param_df = dp.get_test_param_df_from_testdir("")
+        self.assertEqual(param_df, None)
+
+        param_df = dp.get_test_param_df_from_testdir(
+            "pytests/test_data/normal_tests/600SEC_23P_1S_REL_MC_0DUR_100LC/"
+        )
+        self.assertEqual(param_df, None)
+
+        self.assertEqual(
+            dp.get_test_param_df_from_testdir(
+                "pytests/test_data/normal_tests/some_random_folder/"
+            ),
+            None
+        )
 
     def test_get_pub_file_from_testdir(self):
         self.assertEqual(
