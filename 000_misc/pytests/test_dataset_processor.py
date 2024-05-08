@@ -8,8 +8,12 @@ class TestDatasetProcessor(unittest.TestCase):
 
     def test_get_longest_path_in_dir(self):
         self.assertEqual(
-            dp.get_longest_path_in_dir(''),
-            ""
+            dp.get_longest_path_in_dir(""),
+            None
+        )
+        self.assertEqual(
+            dp.get_longest_path_in_dir(),
+            None
         )
         self.assertEqual(
             dp.get_longest_path_in_dir('pytests/test_data'), 

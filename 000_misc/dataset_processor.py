@@ -35,10 +35,14 @@ logger.addHandler(console_handler)
 #--------------------------------------------------------------------------------------------------------------------------
 #                                                      FUNCTIONS
 #--------------------------------------------------------------------------------------------------------------------------
-def get_longest_path_in_dir(dir_path: str) -> str:
+def get_longest_path_in_dir(dir_path: str = "") -> str:
     """
     Get the longest path in a directory.
     """
+    if dir_path == "":
+        logger.error(f"No path passed to get_longest_path_in_dir().")
+        return None
+
     longest_path = ""
     longest_path_len = 0
 
