@@ -86,6 +86,11 @@ def get_file_line_count(file_path):
     return num_lines
 
 def get_headings_from_pub_file(pub_file: str = "") -> list[str]:
+    """
+    Reads a csv file,
+    looks for the column heading names in the first 10 lines of the file,
+    return the list of headings.
+    """
     if pub_file is None:
         return []
 
@@ -113,16 +118,12 @@ def get_headings_from_pub_file(pub_file: str = "") -> list[str]:
     return headings
 
 def get_latency_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
-    logger.info(f"Getting latency df from {test_dir}.")
     pub_file = get_pub_file_from_testdir(test_dir)
     if pub_file is None:
         return None
 
     headings = get_headings_from_pub_file(pub_file)
-
-    headings_count = len(headings)
-
-    if headings_count == 0:
+    if len(headings) == 0:
         logger.error(f"No headings found in pub_0.csv of {test_dir}.")
         return None
 
@@ -135,32 +136,60 @@ def get_latency_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
                 break
 
             line_items = line.strip().split(",")
+            line_items = [
+                item for item in line_items if item != ""
+            ]
 
-            if len(line_items) == headings_count:
-                number_pattern_regex = re.compile(r'^\d+(\.\d+)?$')
-                line_items = [item.strip() for item in line_items]
-                items_are_numbers = all([number_pattern_regex.match(item) for item in line_items])
+            if len(line_items) == len(headings):
+                number_pattern_regex = re.compile(
+                    r'^\d+(\.\d+)?$'
+                )
+
+                line_items = [
+                    item.strip() for item in line_items
+                ]
+
+                items_are_numbers = all([
+                    number_pattern_regex.match(
+                        item
+                    ) for item in line_items
+                ])
 
                 if(items_are_numbers):
-                    values = [float(item) for item in line_items]
+                    values = [
+                        float(item) for item in line_items
+                    ]
                     data.append(values)
+            else:
+                if len(line_items) > 1 and len(headings) > 1:
+                    logger.warning(
+                        f"Mismatch between column count and line item count."
+                    )
+                    logger.warning(
+                        f"columns: {headings}"
+                    )
+                    logger.warning(
+                        f"Line items: {line_items}"
+                    )
 
+    if len(data) == 0:
+        logger.error(
+            f"No data found when parsing {pub_file}."
+        )
+        return None
+    
     df = pd.DataFrame(data, columns=headings)
-    df.drop(
-        columns=[
-            'Length (Bytes)',
-            'Ave (μs)',
-            'Std (μs)',
-            'Min (μs)',
-            'Max (μs)'
-        ],
-        inplace=True
-    )
-    df.reset_index(
-        drop=True, 
-        inplace=True
-    )
-    df.rename(columns={"Latency (μs)": "latency_us"})
+
+    # Only get the latency column and nothing else
+    latency_cols = [col for col in df.columns if 'latency' in col.lower()]
+    if len(latency_cols) == 0:
+        logger.error(
+            f"No latency col found for {test_dir}."
+        )
+        return None
+
+    latency_col = latency_cols[0]
+    df = df[latency_col]
 
     return df
 
@@ -580,12 +609,19 @@ def main(sys_args: [str] = None) -> None:
             f"[{test_dirs.index(test_dir) + 1}/{len(test_dirs)}] Processing {test_dir}..."
         )
         param_df = get_test_param_df_from_testdir(test_dir)
+        if param_df is None:
+            logger.error(
+                f"Couldn't get parameters for {test_dir}."
+            )
+            continue
 
         latency_df = get_latency_df_from_testdir(
             test_dir
         )
         if latency_df is None:
-            logger.error(f"No latency results found for {test_dir}.")
+            logger.error(
+                f"No latency results found for {test_dir}."
+            )
             tests_without_results_count += 1
             continue
         latency_df = get_distribution_stats_df(latency_df, True)

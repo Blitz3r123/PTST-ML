@@ -1,8 +1,9 @@
 import unittest
 import warnings
 import pandas as pd
-
 import dataset_processor as dp
+
+from icecream import ic
 
 class TestDatasetProcessor(unittest.TestCase):
 
@@ -112,7 +113,7 @@ class TestDatasetProcessor(unittest.TestCase):
                     "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
                 )
             ),
-            pd.DataFrame
+            pd.Series
         )
 
         self.assertEqual(
@@ -121,8 +122,14 @@ class TestDatasetProcessor(unittest.TestCase):
                     "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/"
                 )
             ),
-            pd.DataFrame
+            pd.Series
         )
+
+        df = dp.get_latency_df_from_testdir(
+            "pytests/test_data/normal_tests/600SEC_1B_1P_1S_BE_UC_1DUR_1LC/"
+        )
+        self.assertEqual(df.mean(), 1)
+        self.assertEqual(len(df.index), 9)
 
     def test_get_sub_files_from_testdir(self):
         sub_files = dp.get_sub_files_from_testdir(
