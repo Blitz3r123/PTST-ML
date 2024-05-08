@@ -236,6 +236,13 @@ class TestDatasetProcessor(unittest.TestCase):
             None
         )
 
+        self.assertEqual(
+            dp.get_test_name_from_test_dir(
+                "600SEC_2241B_6P_20S_BE_UC_1DUR_100LC"
+            ),
+            "600SEC_2241B_6P_20S_BE_UC_1DUR_100LC"
+        )
+
 
     def test_get_distribution_stats_from_col(self):
         # TODO: this

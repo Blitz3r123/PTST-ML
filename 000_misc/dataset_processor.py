@@ -269,18 +269,19 @@ def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> 
     return full_df
 
 def get_test_param_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
+    """
+    Takes a path to the test folder,
+    extracts the parameter values,
+    puts it into a dataframe that looks like this:
+
+    duration_sec, datalen_bytes, pub_count, sub_count, use_reliable, use_multicast, durability, latency_count
+    ...,            ...,            ...,        ...,    ...,            ...,        ...,            ...
+
+    """
     if test_dir == "":
         logger.error(f"No test_dir passed to get_test_param_df_from_testdir.")
         return None
-
-    if not os.path.exists(test_dir):
-        logger.error(f"{test_dir} does NOT exist.")
-        return None
-
-    if not os.path.isdir(test_dir):
-        logger.error(f"{test_dir} is NOT a directory.")
-        return None
-
+    
     test_name = get_test_name_from_test_dir(test_dir)
     test_name_items = test_name.split("_")
 
@@ -373,6 +374,13 @@ def get_pub_file_from_testdir(test_dir: str = "") -> str:
     return pub_files[0]
 
 def get_test_name_from_test_dir(test_dir: str = "") -> str:
+    """
+    Returns the name of the last folder in the path.
+    e.g.
+        phd/tests/500SEC_433B/
+        gives back
+        500SEC_433B
+    """
     if test_dir is None:
         return None
 
@@ -502,14 +510,29 @@ def main(sys_args: [str] = None) -> None:
     # e.g. my_path/some_path/more_folders/600SEC.../pub0.csv
     #   => my_path/some_path/more_folders/
 
-    logger.info(f"Getting longest path for {tests_dir_path}.")
-    longest_path = get_longest_path_in_dir(tests_dir_path)
+    logger.info(
+        f"Getting longest path for {tests_dir_path}."
+    )
+    longest_path = get_longest_path_in_dir(
+        tests_dir_path
+    )
     if longest_path is None:
-        logger.error(f"Couldn't get longest path for {tests_dir_path}.")
+        logger.error(
+            f"Couldn't get longest path for {tests_dir_path}."
+        )
         return
 
-    logger.info(f"Getting test parent dirpath from {longest_path}.")
-    test_parent_dirpath = get_test_parent_dirpath_from_fullpath(longest_path)
+    logger.info(
+        f"Getting test parent dirpath from {longest_path}."
+    )
+    test_parent_dirpath = get_test_parent_dirpath_from_fullpath(
+        longest_path
+    )
+    if test_parent_dirpath is None:
+        logger.error(
+            f"Couldn't get test parent dirpath of {longest_path}."
+        )
+        return
 
     test_dirs = [
         os.path.join(
@@ -519,14 +542,20 @@ def main(sys_args: [str] = None) -> None:
             test_parent_dirpath
         )
     ]
-    logger.info(f"Found {len(test_dirs)} tests in {test_parent_dirpath}.")
+    logger.info(
+        f"Found {len(test_dirs)} tests in {test_parent_dirpath}."
+    )
     
     tests_without_results_count = 0
 
     final_df = pd.DataFrame()
 
+    # TODO: Remove the limiter [:10]
     for test_dir in test_dirs[:10]:
         if not os.path.isdir(test_dir):
+            logger.warning(
+                f"{test_dir} is NOT a dir. Skipping..."
+            )
             continue
 
         logger.info(
