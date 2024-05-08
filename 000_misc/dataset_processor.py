@@ -283,67 +283,85 @@ def get_test_param_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
         return None
     
     test_name = get_test_name_from_test_dir(test_dir)
+    if test_name is None:
+        logger.error(
+            f"Couldn't get test_name for {test_dir}."
+        )
+        return None
     test_name_items = test_name.split("_")
 
     if len(test_name_items) != 8:
         logger.error(f"{len(test_name_items)} items found instead of 8.")
         return None
 
-    if 'sec' in test_name_items[0].lower():
-        duration_sec = test_name_items[0].lower().replace("sec", "")
-    else:
-        duration_sec = test_name_items[0].lower().replace("s", "")
-
-    try:
-        duration_sec = int(duration_sec)
-    except Exception as e:
-        logger.error(f"{e}: {test_name}")
-
-    datalen_byte = int(test_name_items[1].lower().replace("b", ""))
-    pub_count = int(test_name_items[2].lower().replace("p", ""))
-    sub_count = int(test_name_items[3].lower().replace("s", ""))
-    durability = int(test_name_items[6].lower().replace("dur", ""))
-    latency_count = int(test_name_items[7].lower().replace("lc", ""))
-
-    if test_name_items[4].lower() == 'be':
-        use_reliable = 0
-    elif test_name_items[4].lower() == 'rel':
-        use_reliable = 1
-    else:
-        logger.warning(f"Unknown item found when parsing reliability usage for {test_name}:\t{test_name_items[4]}")
-
-    if test_name_items[5].lower() == 'uc':
-        use_multicast = 0
-    elif test_name_items[5].lower() == 'mc':
-        use_multicast = 1
-    else:
-        logger.warning(f"Unknown item found when parsing multicast usage for {test_name}:\t{test_name_items[5]}")
-
-    df = pd.DataFrame(
-        [[
-            duration_sec,
-            datalen_byte,
-            pub_count,
-            sub_count,
-            use_reliable,
-            use_multicast,
-            durability,
-            latency_count
-        ]],
-        columns=[
-            'duration_sec',
-            'datalen_byte',
-            'pub_count',
-            'sub_count',
-            'use_reliable',
-            'use_multicast',
-            'durability',
-            'latency_count'
-
+    test_param_dict = {}
+    for item in test_name_items:
+        expected_parameters = [
+            'sec',
+            'b',
+            'p',
+            's',
+            'be',
+            'rel',
+            'uc',
+            'mc',
+            'dur',
+            'lc'
         ]
-    )
+        item_string = re.sub(r'\d+', '', item.lower())
+        if item_string not in expected_parameters:
+            logger.error(f"Unexpected parameter {item_string} found in {test_name}.")
+            return None
 
-    return df
+        non_numeric_parameters = [
+            'uc',
+            'mc',
+            'be',
+            'rel'
+        ]
+        if item.lower() not in non_numeric_parameters:
+            item_value = re.sub(r'\D+', '', item)
+            if item_value == '':
+                logger.error(
+                    f"No value found for {item.lower()} in {test_name}."
+                )
+                return None
+
+            item_value = int(item_value)
+
+        if 'sec' in item.lower():
+            test_param_dict['duration_sec'] = item_value
+
+        elif item.lower().endswith('s'):
+            # Could accidentally be a subscriber...
+            if 'duration_sec' in test_param_dict:
+                test_param_dict['sub_count'] = item_value
+            else:
+                test_param_dict['duration_sec'] = item_value
+
+        elif item.lower().endswith("p"):
+            test_param_dict['pub_count'] = item_value
+
+        elif item.lower().endswith("b"):
+            test_param_dict['datalen_byte'] = item_value
+
+        elif item.lower().endswith("dur"):
+            test_param_dict['durability'] = item_value
+
+        elif item.lower().endswith("lc"):
+            test_param_dict['latency_count'] = item_value
+
+        elif 'uc' in item.lower():
+            test_param_dict['use_multicast'] = 0
+        elif 'mc' in item.lower():
+            test_param_dict['use_multicast'] = 1
+
+        elif 'be' in item.lower():
+            test_param_dict['use_reliable'] = 0
+        elif 'rel' in item.lower():
+            test_param_dict['use_reliable'] = 1
+
+    return pd.DataFrame([test_param_dict])
 
 def get_filepaths_inside_dir(test_dir: str = "") -> [str]:
     if not os.path.isdir(test_dir):
