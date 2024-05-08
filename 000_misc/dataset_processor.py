@@ -15,6 +15,7 @@ import re
 import pandas as pd
 from icecream import ic
 from datetime import datetime
+from typing import Union
 
 # Set up logging
 logging.basicConfig(
@@ -443,6 +444,23 @@ def get_test_name_from_test_dir(test_dir: str = "") -> str:
     return test_name
 
 def get_distribution_stats_from_col(df: pd.DataFrame) -> dict[str, float]:
+    """
+    For a given dataframe,
+    calculate various statitistical values,
+    used to recreate a distribution.
+
+    Statistical values include:
+    mean, std, min, max,
+    1%, 2%, 5%, 10%,
+    20%, 25%,
+    30%,
+    40%,
+    50%,
+    60%,
+    70%, 75%,
+    80%,
+    90%, 95%, 98%, 99%
+    """
     if not isinstance(df, pd.Series):
         logger.error(f"Dataframe with multiple columns passed instead of series.")
         return None
@@ -473,12 +491,14 @@ def get_distribution_stats_from_col(df: pd.DataFrame) -> dict[str, float]:
 
     return distribution_stats
 
-def get_distribution_stats_df(df: pd.DataFrame, is_latency: bool = False) -> pd.DataFrame:
-    col_names = df.columns
+def get_distribution_stats_df(df: Union[pd.DataFrame, pd.Series], is_latency: bool = False) -> pd.DataFrame:
+    if isinstance(df, pd.DataFrame):
+        col_names = df.columns
+    else:
+        col_names = df.name
 
     if is_latency:
         # Force from a single col df to a series.
-        df = df.iloc[:, 0]
         distribution_stats = get_distribution_stats_from_col(df)
 
         distribution_stats_with_name = {}

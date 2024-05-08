@@ -272,8 +272,39 @@ class TestDatasetProcessor(unittest.TestCase):
 
 
     def test_get_distribution_stats_from_col(self):
-        # TODO: this
-        pass
+        df = dp.get_latency_df_from_testdir(
+            "pytests/test_data/normal_tests/600SEC_1B_1P_1S_BE_UC_1DUR_1LC/"
+        )
+
+        expected_dist_stats = {
+            'mean': 1,
+            'std': 0,
+            'min': 1,
+            'max': 1,
+            '1%': 1,
+            '2%': 1,
+            '5%': 1,
+            '10%': 1,
+            '20%': 1,
+            '25%': 1,
+            '30%': 1,
+            '40%': 1,
+            '50%': 1,
+            '60%': 1,
+            '70%': 1,
+            '75%': 1,
+            '80%': 1,
+            '90%': 1,
+            '95%': 1,
+            '98%': 1,
+            '99%': 1,
+        }
+        actual_dist_stats = dp.get_distribution_stats_from_col(df)
+
+        self.assertEqual(
+            expected_dist_stats,
+            actual_dist_stats
+        )
 
     def test_get_distribution_stats_df(self):
         throughput_df = dp.get_sub_metric_df_from_testdir(
