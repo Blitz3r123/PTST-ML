@@ -215,7 +215,31 @@ def get_headings_from_sub_file(sub_file: str = "") -> list[str]:
     return headings
 
 def get_sub_files_from_testdir(test_dir: str = "") -> pd.DataFrame:
+    """
+    Looks inside a folder,
+    for files like sub*.csv.
+    Basically files starting with sub,
+    and ending with .csv.
+    """
+    if not os.path.exists(test_dir):
+        logger.error(
+            f"Path does NOT exist: {test_dir}."
+        )
+        return None
+
+    if not os.path.isdir(test_dir):
+        logger.error(
+            f"{test_dir} is NOT a dir."
+        )
+        return None
+
     test_files = os.listdir(test_dir)
+    if len(test_files) == 0:
+        logger.error(
+            f"No files found in {test_dir}."
+        )
+        return None
+
     test_files = [file for file in test_files if file.endswith('.csv')]
     test_files = [file for file in test_files if file.startswith('sub')]
     test_files = [os.path.join(test_dir, file) for file in test_files]

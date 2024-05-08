@@ -138,6 +138,13 @@ class TestDatasetProcessor(unittest.TestCase):
 
         self.assertEqual(len(sub_files), 20)
 
+        self.assertEqual(
+            dp.get_sub_files_from_testdir(
+                "pytests/test_data/normal_tests/some_random_folder"
+            ),
+            None
+        )
+
     def test_get_sub_headings_from_sub_file(self):
         sub_filepath = "pytests/test_data/normal_tests/600SEC_212B_6P_20S_BE_UC_1DUR_100LC/sub_0.csv"
 
@@ -269,7 +276,6 @@ class TestDatasetProcessor(unittest.TestCase):
             ),
             "600SEC_2241B_6P_20S_BE_UC_1DUR_100LC"
         )
-
 
     def test_get_distribution_stats_from_col(self):
         df = dp.get_latency_df_from_testdir(
