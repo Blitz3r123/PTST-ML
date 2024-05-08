@@ -208,6 +208,23 @@ class TestDatasetProcessor(unittest.TestCase):
             None
         )
 
+
+    def test_get_distribution_stats_from_col(self):
+        # TODO: this
+        pass
+
+    def test_get_distribution_stats_df(self):
+        throughput_df = dp.get_sub_metric_df_from_testdir(
+            "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/",
+            'mbps'
+        )
+        
+        dist_stat_df = dp.get_distribution_stats_df(
+            throughput_df
+        )
+
+        self.assertEqual(type(dist_stat_df), pd.DataFrame)
+
 if __name__ == '__main__':
     warnings.filterwarnings("ignore", category=FutureWarning)
     unittest.main()
