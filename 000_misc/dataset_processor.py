@@ -86,31 +86,31 @@ def get_file_line_count(file_path):
 
     return num_lines
 
-def get_headings_from_pub_file(pub_file: str = "") -> list[str]:
+def get_headings_from_csv_file(csv_file: str = "") -> list[str]:
     """
     Reads a csv file,
     looks for the column heading names in the first 10 lines of the file,
     return the list of headings.
     """
-    if pub_file is None:
+    if csv_file is None:
         return []
 
-    if not os.path.exists(pub_file):
-        logger.error(f"{pub_file} is not a valid path.")
+    if not os.path.exists(csv_file):
+        logger.error(f"{csv_file} is not a valid path.")
         return []
 
-    with open(pub_file, 'r') as f:
+    with open(csv_file, 'r') as f:
         file_line_count = sum(1 for _ in f)
 
     if file_line_count < 10:
-        logger.error(f"Less than 10 lines found in {pub_file}.")
+        logger.error(f"Less than 10 lines found in {csv_file}.")
         return []
 
-    with open(pub_file, 'r') as f:
+    with open(csv_file, 'r') as f:
         file_head = [next(f) for x in range(10)]
 
     for line in file_head:
-        if 'length' in line.lower() and 'latency' in line.lower():
+        if 'length' in line.lower() and ('latency' in line.lower() or 'samples' in line.lower()):
             headings = line.strip().split(",")
             headings = [heading.strip() for heading in headings]
 
@@ -123,7 +123,7 @@ def get_latency_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
     if pub_file is None:
         return None
 
-    headings = get_headings_from_pub_file(pub_file)
+    headings = get_headings_from_csv_file(pub_file)
     if len(headings) == 0:
         logger.error(f"No headings found in pub_0.csv of {test_dir}.")
         return None
@@ -194,26 +194,6 @@ def get_latency_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
 
     return df
 
-def get_headings_from_sub_file(sub_file: str = "") -> list[str]:
-    with open(sub_file, 'r') as f:
-        file_line_count = sum(1 for _ in f)
-
-    if file_line_count < 10:
-        logger.error(f"Less than 10 lines found in {sub_file}.")
-        return []
-
-    with open(sub_file, 'r') as f:
-        file_head = [next(f) for x in range(10)]
-
-    for line in file_head:
-        if 'length' in line.lower() and 'samples' in line.lower():
-            headings = line.strip().split(",")
-            headings = [heading.strip() for heading in headings]
-
-    headings = [heading for heading in headings if heading != ""]
-
-    return headings
-
 def get_sub_files_from_testdir(test_dir: str = "") -> pd.DataFrame:
     """
     Looks inside a folder,
@@ -248,6 +228,14 @@ def get_sub_files_from_testdir(test_dir: str = "") -> pd.DataFrame:
 
 def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> pd.DataFrame:
     """
+
+    Get all sub.csv files for the test,
+    go through each file,
+    get the sub_metric of interest,
+    calculate total over all subscribers,
+    calculate average per subscriber,
+    return df with total and average for the metric.
+
     sub_metric could be:
     - total samples
     - samples/s
@@ -275,7 +263,7 @@ def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> 
     for sub_file in sub_files:
         sub_name = os.path.basename(sub_file).replace(".csv", "")
 
-        headings = get_headings_from_sub_file(sub_file)
+        headings = get_headings_from_csv_file(sub_file)
         headings = [_.lower() for _ in headings]
         if sub_metric not in headings:
             logger.error(f"{sub_metric} not found in {sub_file}.")

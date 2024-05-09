@@ -67,9 +67,9 @@ class TestDatasetProcessor(unittest.TestCase):
             None
         )
 
-    def test_get_headings_from_pub_file(self):
+    def test_get_headings_from_csv_file(self):
         self.assertEqual(
-            dp.get_headings_from_pub_file(
+            dp.get_headings_from_csv_file(
                 'pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv'
             ),
             [
@@ -83,7 +83,7 @@ class TestDatasetProcessor(unittest.TestCase):
         )
 
         self.assertEqual(
-            dp.get_headings_from_pub_file(
+            dp.get_headings_from_csv_file(
                 'pytests/test_data/normal_tests/600SEC_2121B_6P_20S_BE_UC_1DUR_100LC/pub_0.csv'
             ),
             [
@@ -93,17 +93,34 @@ class TestDatasetProcessor(unittest.TestCase):
         )
 
         self.assertEqual(
-            dp.get_headings_from_pub_file(
+            dp.get_headings_from_csv_file(
                 None
             ),
             []
         )
 
         self.assertEqual(
-            dp.get_headings_from_pub_file(
+            dp.get_headings_from_csv_file(
                 'some_file_that/does_not/exist.csv'
             ),
             []
+        )
+
+        sub_filepath = "pytests/test_data/normal_tests/600SEC_212B_6P_20S_BE_UC_1DUR_100LC/sub_0.csv"
+
+        sub_headings = dp.get_headings_from_csv_file(sub_filepath)
+        self.assertEqual(
+            sub_headings,
+            [
+                'Length (Bytes)',
+                'Total Samples',
+                'Samples/s',
+                'Avg Samples/s',
+                'Mbps',
+                'Avg Mbps',
+                'Lost Samples',
+                'Lost Samples (%)'
+            ]
         )
 
     def test_get_latency_df_from_testdir(self):
@@ -171,24 +188,6 @@ class TestDatasetProcessor(unittest.TestCase):
             []
         )
 
-    def test_get_sub_headings_from_sub_file(self):
-        sub_filepath = "pytests/test_data/normal_tests/600SEC_212B_6P_20S_BE_UC_1DUR_100LC/sub_0.csv"
-
-        sub_headings = dp.get_headings_from_sub_file(sub_filepath)
-        self.assertEqual(
-            sub_headings,
-            [
-                'Length (Bytes)',
-                'Total Samples',
-                'Samples/s',
-                'Avg Samples/s',
-                'Mbps',
-                'Avg Mbps',
-                'Lost Samples',
-                'Lost Samples (%)'
-            ]
-        )
-
     def test_get_sub_metric_df_from_testdir(self):
         df = dp.get_sub_metric_df_from_testdir(
             "pytests/test_data/normal_tests/600SEC_2241B_6P_20S_BE_UC_1DUR_100LC/",
@@ -246,7 +245,6 @@ class TestDatasetProcessor(unittest.TestCase):
             ),
             None
         )
-
 
     def test_get_pub_file_from_testdir(self):
         self.assertEqual(
