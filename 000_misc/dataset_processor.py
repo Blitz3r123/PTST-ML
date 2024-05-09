@@ -59,7 +59,7 @@ def get_longest_path_in_dir(dir_path: str = "") -> str:
 
 def get_test_parent_dirpath_from_fullpath(longest_path: str = "") -> str:
     """
-    Takes a path and returns the third last folder as path.
+    Takes a path and returns the second last folder as path.
     e.g.
         phd/year_one/machine_learning/experiments/qos_capture/600SEC_200B/pub.csv
 
@@ -674,8 +674,7 @@ def main(sys_args: [str] = None) -> None:
 
     final_df = pd.DataFrame()
 
-    # TODO: Remove the limiter [:10]
-    for test_dir in test_dirs[:10]:
+    for test_dir in test_dirs:
         if not os.path.isdir(test_dir):
             logger.warning(
                 f"{test_dir} is NOT a dir. Skipping..."
@@ -780,6 +779,8 @@ def main(sys_args: [str] = None) -> None:
         ])
 
     final_df_filename = os.path.basename(tests_dir_path)
+    current_timestamp = datetime.today().strftime('%Y%m%d')
+    final_df_filename = f"{current_timestamp}_{final_df_filename}"
     final_df.to_csv(f"./{final_df_filename}.csv", index=False)
     logger.info(f"Dataset created as {final_df_filename}.csv.")
     logger.info(f"Processed {len(test_dirs)} tests.")
