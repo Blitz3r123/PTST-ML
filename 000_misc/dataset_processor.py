@@ -93,18 +93,23 @@ def get_headings_from_csv_file(csv_file: str = "") -> list[str]:
     return the list of headings.
     """
     if csv_file is None:
-        return []
+        logger.error(
+            f"No csv file passed to get_headings_from_csv_file()"
+        )
+        return None
 
     if not os.path.exists(csv_file):
-        logger.error(f"{csv_file} is not a valid path.")
-        return []
+        logger.error(
+            f"{csv_file} is not a valid path."
+        )
+        return None
 
     with open(csv_file, 'r') as f:
         file_line_count = sum(1 for _ in f)
 
     if file_line_count < 10:
         logger.error(f"Less than 10 lines found in {csv_file}.")
-        return []
+        return None
 
     with open(csv_file, 'r') as f:
         file_head = [next(f) for x in range(10)]
@@ -116,6 +121,12 @@ def get_headings_from_csv_file(csv_file: str = "") -> list[str]:
 
     headings = [heading for heading in headings if heading != ""]
 
+    if len(headings) == 0:
+        logger.error(
+            f"No headings found in {csv_file}"
+        )
+        return None
+
     return headings
 
 def get_latency_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
@@ -124,54 +135,17 @@ def get_latency_df_from_testdir(test_dir: str = "") -> pd.DataFrame:
         return None
 
     headings = get_headings_from_csv_file(pub_file)
+    if headings is None:
+        logger.error(
+            f"Couldn't get headings for {pub_file}."
+        )
+        return None
+
     if len(headings) == 0:
         logger.error(f"No headings found in pub_0.csv of {test_dir}.")
         return None
 
-    with open(pub_file, 'r') as f:
-        data = []
-        for line in f:
-            # Here we've reached the end of the results
-            # so we don't need to read the rest of the file
-            if 'summary' in line.strip().lower():
-                break
-
-            line_items = line.strip().split(",")
-            line_items = [
-                item for item in line_items if item != ""
-            ]
-
-            if len(line_items) == len(headings):
-                number_pattern_regex = re.compile(
-                    r'^\d+(\.\d+)?$'
-                )
-
-                line_items = [
-                    item.strip() for item in line_items
-                ]
-
-                items_are_numbers = all([
-                    number_pattern_regex.match(
-                        item
-                    ) for item in line_items
-                ])
-
-                if(items_are_numbers):
-                    values = [
-                        float(item) for item in line_items
-                    ]
-                    data.append(values)
-            else:
-                if len(line_items) > 1 and len(headings) > 1:
-                    logger.warning(
-                        f"Mismatch between column count and line item count."
-                    )
-                    logger.warning(
-                        f"columns: {headings}"
-                    )
-                    logger.warning(
-                        f"Line items: {line_items}"
-                    )
+    data = parse_csv_file(pub_file, headings)
 
     if len(data) == 0:
         logger.error(
@@ -226,6 +200,82 @@ def get_sub_files_from_testdir(test_dir: str = "") -> pd.DataFrame:
 
     return test_files
 
+def parse_csv_file(csv_file: str = "", headings: [str] = []) -> [[float]]:
+    """
+    Reads the csv file.
+    Start from the top,
+    split the line into its columns,
+    check if the line has the same number of items as the headings,
+    check if the items are numbers,
+    put the numbers into an array,
+    put the array into another array that is returned.
+    """
+    if csv_file == "":
+        logger.error(
+            f"No csv file passed"
+        )
+        return None
+
+    if not os.path.exists(csv_file):
+        logger.error(
+            f"File does NOT exist: {csv_file}"
+        )
+        return None
+
+    if len(headings) == 0:
+        logger.error(
+            f"No headings passed when parsing {csv_file}"
+        )
+        return None
+
+    with open(csv_file, 'r') as f:
+        data = []
+        for line in f:
+            # Here we've reached the end of the results
+            # so we don't need to read the rest of the file
+            if 'summary' in line.strip().lower():
+                break
+
+            line_items = line.strip().split(",")
+            line_items = [
+                item for item in line_items if item != ""
+            ]
+
+            if len(line_items) == len(headings):
+                number_pattern_regex = re.compile(
+                    r'^\d+(\.\d+)?$'
+                )
+
+                line_items = [
+                    item.strip() for item in line_items
+                ]
+
+                items_are_numbers = all([
+                    number_pattern_regex.match(
+                        item
+                    ) for item in line_items
+                ])
+
+                if(items_are_numbers):
+                    values = [
+                        float(item) for item in line_items
+                    ]
+                    data.append(values)
+            # else:
+            #     if len(line_items) > 1 and len(headings) > 1:
+            #         logger.warning(
+            #             f"Mismatch between column count and line item count."
+            #         )
+            #         logger.warning(
+            #             f"columns: {headings}"
+            #         )
+            #         logger.warning(
+            #             f"Line items: {line_items}"
+            #         )
+
+    return data
+
+
 def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> pd.DataFrame:
     """
 
@@ -264,9 +314,17 @@ def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> 
         sub_name = os.path.basename(sub_file).replace(".csv", "")
 
         headings = get_headings_from_csv_file(sub_file)
+        if headings is None:
+            logger.error(
+                f"Couldn't get headings for {sub_file}."
+            )
+            continue
+
         headings = [_.lower() for _ in headings]
         if sub_metric not in headings:
-            logger.error(f"{sub_metric} not found in {sub_file}.")
+            logger.error(
+                f"{sub_metric} not found in {sub_file}."
+            )
             continue
 
         # Add the sub name to the metric names
@@ -274,24 +332,7 @@ def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> 
         headings = [f"{sub_name} {heading}" for heading in headings]
         headings_count = len(headings)
 
-        with open(sub_file, 'r') as f:
-            data = []
-
-            for line in f:
-                if 'summary' in line.strip().lower():
-                    break
-
-                line_items = line.strip().split(",")
-                if len(line_items) == headings_count:
-                    number_pattern_regex = re.compile(r'^\d+(\.\d+)?$')
-                    line_items = [item.strip() for item in line_items]
-                    items_are_numbers = all(
-                        [number_pattern_regex.match(item) for item in line_items]
-                    )
-
-                    if(items_are_numbers):
-                        values = [float(item) for item in line_items]
-                        data.append(values)
+        data = parse_csv_file(sub_file, headings)
 
         sub_df = pd.DataFrame(data, columns=headings)
 
@@ -713,16 +754,9 @@ def main(sys_args: [str] = None) -> None:
             test_df, 
             final_df
         ])
-        #
-        # os.makedirs("./summaries", exist_ok=True)
-        # test_name = get_test_name_from_test_dir(test_dir)
-        # test_csv_filename = f"./summaries/{test_name}.csv"
-        # test_df.to_csv(test_csv_filename, index=False)
-        # logger.info(f"Summary written to {test_csv_filename}.")
-
 
     final_df_filename = os.path.basename(tests_dir_path)
-    final_df.to_csv(f"./{final_df_filename}.csv")
+    final_df.to_csv(f"./{final_df_filename}.csv", index=False)
     logger.info(f"Dataset created as {final_df_filename}.csv.")
     logger.info(f"Processed {len(test_dirs)} tests.")
     logger.info(f"{tests_without_results_count} tests failed.")

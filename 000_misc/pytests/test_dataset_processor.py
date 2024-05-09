@@ -96,14 +96,14 @@ class TestDatasetProcessor(unittest.TestCase):
             dp.get_headings_from_csv_file(
                 None
             ),
-            []
+            None
         )
 
         self.assertEqual(
             dp.get_headings_from_csv_file(
                 'some_file_that/does_not/exist.csv'
             ),
-            []
+            None
         )
 
         sub_filepath = "pytests/test_data/normal_tests/600SEC_212B_6P_20S_BE_UC_1DUR_100LC/sub_0.csv"
