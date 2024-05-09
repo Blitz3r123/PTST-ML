@@ -145,6 +145,32 @@ class TestDatasetProcessor(unittest.TestCase):
             None
         )
 
+        self.assertEqual(
+            len(
+                dp.get_sub_files_from_testdir(
+                    "pytests/test_data/normal_tests/600SEC_23P_1S_REL_MC_0DUR_100LC/"
+                )
+            ),
+            4
+        )
+
+        self.assertEqual(
+            dp.get_sub_files_from_testdir(
+                "idk"
+            ),
+            None
+        )
+
+        self.assertEqual(
+            dp.get_sub_files_from_testdir(),
+            None
+        )
+
+        self.assertEqual(
+            dp.get_sub_files_from_testdir("pytests"),
+            []
+        )
+
     def test_get_sub_headings_from_sub_file(self):
         sub_filepath = "pytests/test_data/normal_tests/600SEC_212B_6P_20S_BE_UC_1DUR_100LC/sub_0.csv"
 

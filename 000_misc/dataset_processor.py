@@ -258,6 +258,17 @@ def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> 
     - lost samples (%)
     """
     sub_files = get_sub_files_from_testdir(test_dir)
+    if sub_files is None:
+        logger.error(
+            f"Couldn't get sub files from {test_dir}."
+        )
+        return None
+
+    if len(sub_files) == 0:
+        logger.error(
+            f"No sub files found in {test_dir}."
+        )
+        return None
 
     full_df = pd.DataFrame()
 
