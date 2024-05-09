@@ -275,7 +275,6 @@ def parse_csv_file(csv_file: str = "", headings: [str] = []) -> [[float]]:
 
     return data
 
-
 def get_sub_metric_df_from_testdir(test_dir: str = "", sub_metric: str = "") -> pd.DataFrame:
     """
 
@@ -634,16 +633,15 @@ def main(sys_args: [str] = None) -> None:
     
     tests_dir_path = sys_args[0]
 
-
     # tests_dir_path should be in the format: dir_path/600SEC.../pub0.csv
     # A single test should be in the final folder e.g. 600SEC.../
     # So get the longest path and then go out 2 folders to see all tests.
     # e.g. my_path/some_path/more_folders/600SEC.../pub0.csv
     #   => my_path/some_path/more_folders/
 
-    logger.info(
-        f"Getting longest path for {tests_dir_path}."
-    )
+    # logger.info(
+    #     f"Getting longest path for {tests_dir_path}."
+    # )
     longest_path = get_longest_path_in_dir(
         tests_dir_path
     )
@@ -653,9 +651,6 @@ def main(sys_args: [str] = None) -> None:
         )
         return
 
-    logger.info(
-        f"Getting test parent dirpath from {longest_path}."
-    )
     test_parent_dirpath = get_test_parent_dirpath_from_fullpath(
         longest_path
     )
@@ -673,9 +668,7 @@ def main(sys_args: [str] = None) -> None:
             test_parent_dirpath
         )
     ]
-    logger.info(
-        f"Found {len(test_dirs)} tests in {test_parent_dirpath}."
-    )
+
     
     tests_without_results_count = 0
 
@@ -714,30 +707,61 @@ def main(sys_args: [str] = None) -> None:
             test_dir, 
             'mbps'
         )
+        if throughput_df is None:
+            logger.error(
+                f"Couldn't get throughput results for {test_dir}."
+            )
+            tests_without_results_count += 1
+            continue
+
         throughput_df = get_distribution_stats_df(throughput_df)
 
         sample_rate_df = get_sub_metric_df_from_testdir(
             test_dir, 
             'samples/s'
         )
+        if sample_rate_df is None:
+            logger.error(
+                f"Couldn't get sample_rate results for {test_dir}."
+            )
+            tests_without_results_count += 1
+            continue
         sample_rate_df = get_distribution_stats_df(sample_rate_df)
 
         lost_samples_df = get_sub_metric_df_from_testdir(
             test_dir, 
             'lost samples'
         )
+        if lost_samples_df is None:
+            logger.error(
+                f"Couldn't get lost_samples results for {test_dir}."
+            )
+            tests_without_results_count += 1
+            continue
         lost_samples_df = get_distribution_stats_df(lost_samples_df)
 
         lost_samples_percentage_df = get_sub_metric_df_from_testdir(
             test_dir, 
             'lost samples (%)'
         )
+        if lost_samples_percentage_df is None:
+            logger.error(
+                f"Couldn't get lost_samples_percentage results for {test_dir}."
+            )
+            tests_without_results_count += 1
+            continue
         lost_samples_percentage_df = get_distribution_stats_df(lost_samples_percentage_df)
 
         received_samples_df = get_sub_metric_df_from_testdir(
             test_dir, 
             'total samples'
         )
+        if received_samples_df is None:
+            logger.error(
+                f"Couldn't get received_samples results for {test_dir}."
+            )
+            tests_without_results_count += 1
+            continue
         received_samples_df = get_distribution_stats_df(received_samples_df)
 
         test_df = pd.concat([
